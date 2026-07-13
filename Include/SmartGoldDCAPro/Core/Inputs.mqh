@@ -45,5 +45,13 @@ input double              InpMinimumGridPoints             = 200.0;
 input double              InpMaximumGridPoints             = 1200.0;
 input double              InpHighVolatilityATRPoints       = 800.0;
 input bool                InpBlockDCAInHighVolatility      = true;
+input group "=== SESSION FILTER ==="
 
+input bool InpEnableSessionFilter = false;
+input int  InpSessionStartHour    = 7;
+input int  InpSessionEndHour      = 22;
+
+input group "=== DAILY PROTECTION ==="
+
+input double InpMaxDailyLossMoney = 0.0;
 #endif
