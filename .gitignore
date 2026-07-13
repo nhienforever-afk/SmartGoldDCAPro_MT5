@@ -1,0 +1,24 @@
+# MT5 compiled/binary output
+*.ex5
+*.ex4
+*.log
+
+# Tester/cache output
+MQL5/Tester/
+Tester/
+Logs/
+Files/
+*.fxt
+*.hst
+
+# IDE/editor
+.vscode/
+.idea/
+*.code-workspace
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Temporary deployment metadata
+.deploy/
