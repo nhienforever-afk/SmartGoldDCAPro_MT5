@@ -1,0 +1,5 @@
+D:\Projects\SmartGoldDCAPro_MT5_vNext\Experts\SmartGoldDCAPro.mq5:145: opened = g_orders.OpenBuy(
+D:\Projects\SmartGoldDCAPro_MT5_vNext\Experts\SmartGoldDCAPro.mq5:154: opened = g_orders.OpenSell(
+D:\Projects\SmartGoldDCAPro_MT5_vNext\Experts\SmartGoldDCAPro.mq5:234: g_orders.Initialize(
+D:\Projects\SmartGoldDCAPro_MT5_vNext\Include\SmartGoldDCAPro\Trade\EntryEngine.mqh:79: return m_orders.OpenBuy(
+D:\Projects\SmartGoldDCAPro_MT5_vNext\Include\SmartGoldDCAPro\Trade\EntryEngine.mqh:87: return m_orders.OpenSell(

@@ -1,0 +1,11 @@
+D:\Projects\SmartGoldDCAPro_MT5_vNext\Experts\SmartGoldDCAPro.mq5:229: g_positions.Initialize(
+D:\Projects\SmartGoldDCAPro_MT5_vNext\Experts\SmartGoldDCAPro.mq5:396: g_positions.CountAll();
+D:\Projects\SmartGoldDCAPro_MT5_vNext\Include\SmartGoldDCAPro\Dashboard\Dashboard.mqh:58: "Symbol: " + positions.Symbol() + "\n" +
+D:\Projects\SmartGoldDCAPro_MT5_vNext\Include\SmartGoldDCAPro\Dashboard\Dashboard.mqh:60: IntegerToString(positions.CountAll()) + "\n" +
+D:\Projects\SmartGoldDCAPro_MT5_vNext\Include\SmartGoldDCAPro\Dashboard\Dashboard.mqh:62: DoubleToString(positions.TotalVolume(), 2) + "\n" +
+D:\Projects\SmartGoldDCAPro_MT5_vNext\Include\SmartGoldDCAPro\Dashboard\Dashboard.mqh:64: DoubleToString(positions.TotalProfit(), 2) + "\n" +
+D:\Projects\SmartGoldDCAPro_MT5_vNext\Include\SmartGoldDCAPro\DCA\DCAEngine.mqh:154: int positionCount = m_positions.CountAll();
+D:\Projects\SmartGoldDCAPro_MT5_vNext\Include\SmartGoldDCAPro\DCA\DCAEngine.mqh:172: if(!m_positions.GetBasketDirection(direction))
+D:\Projects\SmartGoldDCAPro_MT5_vNext\Include\SmartGoldDCAPro\DCA\DCAEngine.mqh:252: if(!m_positions.GetLatestPosition(
+D:\Projects\SmartGoldDCAPro_MT5_vNext\Include\SmartGoldDCAPro\DCA\DCAEngine.mqh:264: m_positions.Symbol(),
+D:\Projects\SmartGoldDCAPro_MT5_vNext\Include\SmartGoldDCAPro\Trade\EntryEngine.mqh:59: if(!InpAllowNewTrades || m_positions.CountAll() > 0)
