@@ -1,7 +1,13 @@
 #property copyright "Copyright 2026 NhienForever"
+<<<<<<< HEAD
 #property version   "1.40"
 #property strict
 #property description "SmartGoldDCAPro - Weighted Signal Builder"
+=======
+#property version   "1.30"
+#property strict
+#property description "SmartGoldDCAPro - Milestone 2 Trading Engine"
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
 
 #include <SmartGoldDCAPro/Core/Types.mqh>
 #include <SmartGoldDCAPro/Core/Inputs.mqh>
@@ -38,9 +44,15 @@ COrderManager       g_orders;
 CBasketManager      g_basket;
 CSignalEngine       g_signalEngine;
 CSignalCoordinator  g_signalCoordinator;
+<<<<<<< HEAD
 CMarketAnalyzer     g_marketAnalyzer;
 CAdaptiveGridEngine g_adaptiveGrid;
 CSmartLotCalculator g_smartLot;
+=======
+CMarketAnalyzer      g_marketAnalyzer;
+CAdaptiveGridEngine  g_adaptiveGrid;
+CSmartLotCalculator  g_smartLot;
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
 CEntryEngine        g_entry;
 CExitEngine         g_exit;
 CDCAEngine          g_dca;
@@ -61,11 +73,17 @@ bool IsAllowedGoldSymbol()
 
 bool IsNewSignalBar()
 {
+<<<<<<< HEAD
    datetime barTime =
       iTime(_Symbol, InpSignalTimeframe, 0);
 
    if(barTime <= 0 ||
       barTime == g_lastSignalBar)
+=======
+   datetime barTime = iTime(_Symbol, InpSignalTimeframe, 0);
+
+   if(barTime <= 0 || barTime == g_lastSignalBar)
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
       return false;
 
    g_lastSignalBar = barTime;
@@ -77,8 +95,12 @@ bool CooldownFinished()
    if(g_lastTradeTime <= 0)
       return true;
 
+<<<<<<< HEAD
    return TimeCurrent() - g_lastTradeTime >=
           InpTradeCooldownSeconds;
+=======
+   return TimeCurrent() - g_lastTradeTime >= InpTradeCooldownSeconds;
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
 }
 
 bool EnvironmentAllowed()
@@ -92,6 +114,7 @@ bool EnvironmentAllowed()
    return true;
 }
 
+<<<<<<< HEAD
 void RenderDashboard()
 {
    g_dashboard.Render(
@@ -114,6 +137,8 @@ void RenderDashboard()
    );
 }
 
+=======
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
 bool TryDCA()
 {
    if(!InpEnableDCA || !CooldownFinished())
@@ -123,6 +148,7 @@ bool TryDCA()
    ENUM_POSITION_TYPE direction;
    double nextLot = 0.0;
 
+<<<<<<< HEAD
    if(!g_dca.ShouldAddPosition(
          direction,
          nextLot,
@@ -133,6 +159,12 @@ bool TryDCA()
          nextLot,
          InpMaximumSpreadPoints,
          reason))
+=======
+   if(!g_dca.ShouldAddPosition(direction, nextLot, reason))
+      return false;
+
+   if(!g_risk.CanOpenTrade(nextLot, InpMaximumSpreadPoints, reason))
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
    {
       g_log.Warn("DCA blocked: " + reason);
       return false;
@@ -141,6 +173,7 @@ bool TryDCA()
    bool opened = false;
 
    if(direction == POSITION_TYPE_BUY)
+<<<<<<< HEAD
    {
       opened = g_orders.OpenBuy(
          nextLot,
@@ -158,10 +191,16 @@ bool TryDCA()
          "DCA SELL"
       );
    }
+=======
+      opened = g_orders.OpenBuy(nextLot, 0.0, 0.0, "DCA BUY");
+   else if(direction == POSITION_TYPE_SELL)
+      opened = g_orders.OpenSell(nextLot, 0.0, 0.0, "DCA SELL");
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
 
    if(opened)
    {
       g_lastTradeTime = TimeCurrent();
+<<<<<<< HEAD
 
       g_journal.Write(
          "DCA_OPEN",
@@ -173,6 +212,9 @@ bool TryDCA()
          ", safety=" +
          (g_dca.LastSmartSafetyActive() ? "ON" : "OFF")
       );
+=======
+      g_journal.Write("DCA_OPEN", "Lot=" + DoubleToString(nextLot, 2));
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
    }
 
    return opened;
@@ -180,6 +222,7 @@ bool TryDCA()
 
 int OnInit()
 {
+<<<<<<< HEAD
    g_log.Initialize(
       "SmartGoldDCAPro",
       LOG_INFO
@@ -199,11 +242,21 @@ int OnInit()
          validationReason
       );
 
+=======
+   g_log.Initialize("SmartGoldDCAPro", LOG_INFO);
+   g_journal.Initialize(InpEnableTradeJournal, InpTradeJournalFile);
+
+   string validationReason;
+   if(!g_config.Validate(validationReason))
+   {
+      g_log.Error("Invalid configuration: " + validationReason);
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
       return INIT_PARAMETERS_INCORRECT;
    }
 
    if(!IsAllowedGoldSymbol())
    {
+<<<<<<< HEAD
       g_log.Error(
          "Attach the EA to an XAU/GOLD symbol."
       );
@@ -220,16 +273,28 @@ int OnInit()
       InpMaxDailyLossMoney
    );
 
+=======
+      g_log.Error("Attach the EA to an XAU/GOLD symbol.");
+      return INIT_FAILED;
+   }
+
+   g_risk.Initialize(_Symbol, InpMaxEquityDrawdownPercent);
+   g_dailyRisk.Initialize(InpMaxDailyLossMoney);
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
    g_session.Initialize(
       InpEnableSessionFilter,
       InpSessionStartHour,
       InpSessionEndHour
    );
 
+<<<<<<< HEAD
    g_positions.Initialize(
       _Symbol,
       InpMagicNumber
    );
+=======
+   g_positions.Initialize(_Symbol, InpMagicNumber);
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
 
    g_orders.Initialize(
       g_risk,
@@ -239,6 +304,7 @@ int OnInit()
       InpTradeComment
    );
 
+<<<<<<< HEAD
    g_basket.Initialize(
       g_positions,
       g_orders
@@ -259,6 +325,17 @@ int OnInit()
       g_signalEngine
    );
 
+=======
+   g_basket.Initialize(g_positions, g_orders);
+
+   if(!g_signalEngine.Initialize(_Symbol, InpSignalTimeframe))
+   {
+      g_log.Error("Signal engine initialization failed.");
+      return INIT_FAILED;
+   }
+
+   g_signalCoordinator.Initialize(g_signalEngine);
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
    g_entry.Initialize(
       g_risk,
       g_orders,
@@ -267,10 +344,14 @@ int OnInit()
       g_log
    );
 
+<<<<<<< HEAD
    g_exit.Initialize(
       g_basket,
       g_positions
    );
+=======
+   g_exit.Initialize(g_basket, g_positions);
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
 
    if(!g_marketAnalyzer.Initialize(
          _Symbol,
@@ -278,10 +359,14 @@ int OnInit()
          InpATRPeriod,
          InpHighVolatilityATRPoints))
    {
+<<<<<<< HEAD
       g_log.Error(
          "Market analyzer initialization failed."
       );
 
+=======
+      g_log.Error("Market analyzer initialization failed.");
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
       return INIT_FAILED;
    }
 
@@ -306,6 +391,7 @@ int OnInit()
    g_state.SetState(TRADE_STATE_IDLE);
    g_ready = true;
 
+<<<<<<< HEAD
    string mode =
       InpDCAControlMode == DCA_CONTROL_MANUAL
       ? "MANUAL"
@@ -322,6 +408,10 @@ int OnInit()
       ", DCA mode=" +
       mode
    );
+=======
+   g_journal.Write("EA_INIT", "Version=1.30");
+   g_log.Info("Version 1.30 initialized on " + _Symbol);
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
 
    return INIT_SUCCEEDED;
 }
@@ -331,6 +421,7 @@ void OnDeinit(const int reason)
    g_signalEngine.Release();
    g_marketAnalyzer.Release();
    g_dashboard.Clear();
+<<<<<<< HEAD
 
    g_journal.Write(
       "EA_STOP",
@@ -341,6 +432,10 @@ void OnDeinit(const int reason)
       "Stopped. Reason=" +
       IntegerToString(reason)
    );
+=======
+   g_journal.Write("EA_STOP", "Reason=" + IntegerToString(reason));
+   g_log.Info("Stopped. Reason=" + IntegerToString(reason));
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
 }
 
 void OnTick()
@@ -358,6 +453,7 @@ void OnTick()
       {
          g_state.SetState(TRADE_STATE_EXIT);
 
+<<<<<<< HEAD
          if(g_exit.EmergencyClose(
                "Equity protection"))
          {
@@ -369,19 +465,31 @@ void OnTick()
       }
 
       RenderDashboard();
+=======
+         if(g_exit.EmergencyClose("Equity protection"))
+            g_journal.Write("EMERGENCY_EXIT", "Equity protection");
+      }
+
+      g_dashboard.Render(g_positions, g_risk, g_state.Name(), g_dca.LastATRPoints(), g_dca.LastGridPoints());
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
       return;
    }
 
    if(g_dailyRisk.IsBlocked())
    {
       g_state.SetState(TRADE_STATE_BLOCKED);
+<<<<<<< HEAD
       RenderDashboard();
+=======
+      g_dashboard.Render(g_positions, g_risk, g_state.Name(), g_dca.LastATRPoints(), g_dca.LastGridPoints());
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
       return;
    }
 
    if(g_exit.Manage())
    {
       g_state.SetState(TRADE_STATE_EXIT);
+<<<<<<< HEAD
 
       g_journal.Write(
          "BASKET_EXIT",
@@ -394,6 +502,14 @@ void OnTick()
 
    int positionCount =
       g_positions.CountAll();
+=======
+      g_journal.Write("BASKET_EXIT", "Profit target or stop reached");
+      g_dashboard.Render(g_positions, g_risk, g_state.Name(), g_dca.LastATRPoints(), g_dca.LastGridPoints());
+      return;
+   }
+
+   int positionCount = g_positions.CountAll();
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
 
    if(positionCount <= 0)
    {
@@ -408,6 +524,7 @@ void OnTick()
          if(g_entry.TryOpenInitial())
          {
             g_lastTradeTime = TimeCurrent();
+<<<<<<< HEAD
 
             g_journal.Write(
                "INITIAL_ENTRY",
@@ -422,6 +539,9 @@ void OnTick()
                   1
                )
             );
+=======
+            g_journal.Write("INITIAL_ENTRY", "Opened");
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
          }
       }
    }
@@ -433,5 +553,9 @@ void OnTick()
          TryDCA();
    }
 
+<<<<<<< HEAD
    RenderDashboard();
+=======
+   g_dashboard.Render(g_positions, g_risk, g_state.Name(), g_dca.LastATRPoints(), g_dca.LastGridPoints());
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
 }

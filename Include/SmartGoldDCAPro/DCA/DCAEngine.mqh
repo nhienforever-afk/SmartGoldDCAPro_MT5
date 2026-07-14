@@ -11,6 +11,7 @@
 class CDCAEngine
 {
 private:
+<<<<<<< HEAD
    CPositionManager     *m_positions;
    CRiskManager         *m_risk;
    CMarketAnalyzer      *m_market;
@@ -55,10 +56,21 @@ private:
 
       return m_risk.NormalizeLot(lot);
    }
+=======
+   CPositionManager  *m_positions;
+   CRiskManager      *m_risk;
+   CMarketAnalyzer   *m_market;
+   CAdaptiveGridEngine *m_grid;
+   CSmartLotCalculator *m_lotCalculator;
+
+   double m_lastGridPoints;
+   double m_lastATRPoints;
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
 
 public:
    CDCAEngine()
    {
+<<<<<<< HEAD
       m_positions              = NULL;
       m_risk                   = NULL;
       m_market                 = NULL;
@@ -72,6 +84,15 @@ public:
       m_lastRiskScore          = 0;
       m_lastNextOrderNumber    = 0;
       m_lastSmartSafetyActive  = false;
+=======
+      m_positions    = NULL;
+      m_risk         = NULL;
+      m_market       = NULL;
+      m_grid         = NULL;
+      m_lotCalculator = NULL;
+      m_lastGridPoints = 0.0;
+      m_lastATRPoints  = 0.0;
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
    }
 
    void Initialize(CPositionManager &positions,
@@ -97,6 +118,7 @@ public:
       return m_lastATRPoints;
    }
 
+<<<<<<< HEAD
    double LastNextLot() const
    {
       return m_lastNextLot;
@@ -135,12 +157,17 @@ public:
       return "SMART";
    }
 
+=======
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
    bool ShouldAddPosition(ENUM_POSITION_TYPE &direction,
                           double &nextLot,
                           string &reason)
    {
+<<<<<<< HEAD
       m_lastNextLot = 0.0;
 
+=======
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
       if(m_positions == NULL ||
          m_risk == NULL ||
          m_market == NULL ||
@@ -151,24 +178,36 @@ public:
          return false;
       }
 
+<<<<<<< HEAD
       int positionCount = m_positions.CountAll();
 
       if(positionCount <= 0)
+=======
+      int count = m_positions.CountAll();
+      if(count <= 0)
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
       {
          reason = "No active basket.";
          return false;
       }
 
+<<<<<<< HEAD
       if(positionCount >= InpMaximumDCALevels)
+=======
+      if(count >= InpMaximumDCALevels)
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
       {
          reason = "Maximum DCA levels reached.";
          return false;
       }
 
+<<<<<<< HEAD
       m_lastNextOrderNumber   = positionCount + 1;
       m_lastSmartSafetyActive =
          IsSmartSafetyActive(m_lastNextOrderNumber);
 
+=======
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
       if(!m_positions.GetBasketDirection(direction))
       {
          reason = "Mixed BUY/SELL basket is not supported.";
@@ -176,13 +215,17 @@ public:
       }
 
       SMarketState marketState;
+<<<<<<< HEAD
 
+=======
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
       if(!m_market.Read(marketState))
       {
          reason = "Market state is unavailable.";
          return false;
       }
 
+<<<<<<< HEAD
       m_lastATRPoints = marketState.atrPoints;
 
       if(InpDCAControlMode == DCA_CONTROL_MANUAL)
@@ -247,6 +290,19 @@ public:
       double lastPrice  = 0.0;
       double lastVolume = 0.0;
       datetime lastTime = 0;
+=======
+      m_lastATRPoints  = marketState.atrPoints;
+      m_lastGridPoints = m_grid.Calculate(marketState);
+
+      if(InpBlockDCAInHighVolatility && marketState.highVolatility)
+      {
+         reason = "DCA blocked by high-volatility protection.";
+         return false;
+      }
+
+      double lastPrice, lastVolume;
+      datetime lastTime;
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
       ENUM_POSITION_TYPE lastType;
 
       if(!m_positions.GetLatestPosition(
@@ -259,12 +315,16 @@ public:
          return false;
       }
 
+<<<<<<< HEAD
       double point =
          SymbolInfoDouble(
             m_positions.Symbol(),
             SYMBOL_POINT
          );
 
+=======
+      double point = SymbolInfoDouble(m_positions.Symbol(), SYMBOL_POINT);
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
       if(point <= 0.0)
       {
          reason = "Invalid symbol point.";
@@ -274,6 +334,7 @@ public:
       double adversePoints = 0.0;
 
       if(direction == POSITION_TYPE_BUY)
+<<<<<<< HEAD
       {
          adversePoints =
             (lastPrice - marketState.bid) / point;
@@ -283,10 +344,16 @@ public:
          adversePoints =
             (marketState.ask - lastPrice) / point;
       }
+=======
+         adversePoints = (lastPrice - marketState.bid) / point;
+      else
+         adversePoints = (marketState.ask - lastPrice) / point;
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
 
       if(adversePoints < m_lastGridPoints)
       {
          reason =
+<<<<<<< HEAD
             "DCA distance not reached. Current=" +
             DoubleToString(adversePoints, 1) +
             ", required=" +
@@ -317,6 +384,29 @@ public:
          ", smart safety=" +
          (m_lastSmartSafetyActive ? "ON" : "OFF");
 
+=======
+            "Adaptive grid not reached. Current=" +
+            DoubleToString(adversePoints, 1) +
+            ", required=" +
+            DoubleToString(m_lastGridPoints, 1);
+         return false;
+      }
+
+      nextLot = m_lotCalculator.CalculateNextLot(
+         lastVolume,
+         InpLotMultiplier,
+         InpMaximumLot,
+         m_risk.CurrentDrawdownPercent()
+      );
+
+      if(nextLot <= 0.0)
+      {
+         reason = "Invalid next DCA lot.";
+         return false;
+      }
+
+      reason = "Adaptive DCA condition met.";
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
       return true;
    }
 };

@@ -11,6 +11,7 @@
 class CEntryEngine
 {
 private:
+<<<<<<< HEAD
    CRiskManager       *m_risk;
    COrderManager      *m_orders;
    CPositionManager   *m_positions;
@@ -24,6 +25,13 @@ private:
 
       return InpInitialLot;
    }
+=======
+   CRiskManager      *m_risk;
+   COrderManager     *m_orders;
+   CPositionManager  *m_positions;
+   CSignalCoordinator *m_signals;
+   CLogger           *m_log;
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
 
 public:
    CEntryEngine()
@@ -59,6 +67,7 @@ public:
       if(!InpAllowNewTrades || m_positions.CountAll() > 0)
          return false;
 
+<<<<<<< HEAD
       double lot = GetInitialLot();
       string reason;
 
@@ -70,12 +79,20 @@ public:
          if(m_log != NULL)
             m_log.Warn("Entry blocked: " + reason);
 
+=======
+      string reason;
+      if(!m_risk.CanOpenTrade(InpInitialLot, InpMaximumSpreadPoints, reason))
+      {
+         if(m_log != NULL)
+            m_log.Warn("Entry blocked: " + reason);
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
          return false;
       }
 
       ENUM_TRADE_SIGNAL signal = m_signals.Resolve();
 
       if(signal == SIGNAL_BUY)
+<<<<<<< HEAD
          return m_orders.OpenBuy(
             lot,
             0.0,
@@ -90,6 +107,12 @@ public:
             0.0,
             "Initial SELL"
          );
+=======
+         return m_orders.OpenBuy(InpInitialLot, 0.0, 0.0, "Initial BUY");
+
+      if(signal == SIGNAL_SELL)
+         return m_orders.OpenSell(InpInitialLot, 0.0, 0.0, "Initial SELL");
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
 
       return false;
    }

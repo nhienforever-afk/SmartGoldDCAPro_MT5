@@ -14,6 +14,7 @@ public:
          return false;
       }
 
+<<<<<<< HEAD
       if(InpTradeCooldownSeconds < 0)
       {
          reason = "Trade cooldown cannot be negative.";
@@ -131,12 +132,45 @@ public:
          }
       }
 
+=======
+      if(InpInitialLot <= 0.0)
+      {
+         reason = "Initial lot must be greater than zero.";
+         return false;
+      }
+
+      if(InpMaximumSpreadPoints < 0)
+      {
+         reason = "Maximum spread cannot be negative.";
+         return false;
+      }
+
+      if(InpFastEMAPeriod <= 0 || InpSlowEMAPeriod <= 0)
+      {
+         reason = "EMA periods must be greater than zero.";
+         return false;
+      }
+
+      if(InpFastEMAPeriod >= InpSlowEMAPeriod)
+      {
+         reason = "Fast EMA period must be smaller than Slow EMA period.";
+         return false;
+      }
+
+      if(InpRSIPeriod <= 0 || InpATRPeriod <= 0)
+      {
+         reason = "RSI and ATR periods must be greater than zero.";
+         return false;
+      }
+
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
       if(InpMaximumDCALevels < 1)
       {
          reason = "Maximum DCA levels must be at least one.";
          return false;
       }
 
+<<<<<<< HEAD
       if(InpDCAControlMode == DCA_CONTROL_SMART)
       {
          if(InpInitialLot <= 0.0 || InpMaximumLot <= 0.0)
@@ -224,6 +258,42 @@ public:
          return false;
       }
 
+=======
+      if(InpEnableDCA && InpDCADistancePoints <= 0.0)
+      {
+         reason = "DCA distance must be greater than zero.";
+         return false;
+      }
+
+      if(InpLotMultiplier < 1.0)
+      {
+         reason = "Lot multiplier must be at least 1.0.";
+         return false;
+      }
+
+      if(InpMaximumLot < InpInitialLot)
+      {
+         reason = "Maximum lot cannot be smaller than initial lot.";
+         return false;
+      }
+
+      if(InpUseAdaptiveGrid)
+      {
+         if(InpGridATRMultiplier <= 0.0)
+         {
+            reason = "Grid ATR multiplier must be greater than zero.";
+            return false;
+         }
+
+         if(InpMinimumGridPoints <= 0.0 ||
+            InpMaximumGridPoints < InpMinimumGridPoints)
+         {
+            reason = "Adaptive grid minimum/maximum values are invalid.";
+            return false;
+         }
+      }
+
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
       if(InpMaxEquityDrawdownPercent < 0.0 ||
          InpMaxEquityDrawdownPercent > 100.0)
       {
@@ -231,6 +301,7 @@ public:
          return false;
       }
 
+<<<<<<< HEAD
       if(InpSessionStartHour < 0 || InpSessionStartHour > 23 ||
          InpSessionEndHour < 0 || InpSessionEndHour > 23)
       {
@@ -244,6 +315,8 @@ public:
          return false;
       }
 
+=======
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
       reason = "OK";
       return true;
    }

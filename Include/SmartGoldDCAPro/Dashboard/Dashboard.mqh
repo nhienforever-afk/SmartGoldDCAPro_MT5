@@ -11,6 +11,7 @@ public:
                CRiskManager &risk,
                const string status,
                const double atrPoints = 0.0,
+<<<<<<< HEAD
                const double gridPoints = 0.0,
                const double nextLot = 0.0,
                const double marginLevel = 0.0,
@@ -84,6 +85,21 @@ public:
                2
             ) +
             "%";
+=======
+               const double gridPoints = 0.0)
+   {
+      string text =
+         "SmartGoldDCAPro v1.30\n" +
+         "State: " + status + "\n" +
+         "Symbol: " + positions.Symbol() + "\n" +
+         "Positions: " + IntegerToString(positions.CountAll()) + "\n" +
+         "Volume: " + DoubleToString(positions.TotalVolume(), 2) + "\n" +
+         "Basket P/L: " + DoubleToString(positions.TotalProfit(), 2) + "\n" +
+         "Spread: " + IntegerToString(risk.CurrentSpreadPoints()) + " pts\n" +
+         "ATR: " + DoubleToString(atrPoints, 1) + " pts\n" +
+         "Adaptive Grid: " + DoubleToString(gridPoints, 1) + " pts\n" +
+         "Equity DD: " + DoubleToString(risk.CurrentDrawdownPercent(), 2) + "%";
+>>>>>>> a6502552adb3f6daad7bbaab71976b01460fd24e
 
       Comment(text);
    }
