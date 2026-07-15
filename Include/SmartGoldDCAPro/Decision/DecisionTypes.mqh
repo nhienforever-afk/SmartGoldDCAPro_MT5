@@ -1,72 +1,153 @@
 #ifndef SMARTGOLDDCAPRO_DECISION_TYPES_MQH
 #define SMARTGOLDDCAPRO_DECISION_TYPES_MQH
 
+#include <SmartGoldDCAPro/Core/Types.mqh>
+
 //+------------------------------------------------------------------+
-//| SmartGoldDCAPro - Decision Types                                 |
+//| SmartGoldDCAPro Framework v2.0 - Decision Types                  |
 //+------------------------------------------------------------------+
 
-// Trạng thái thị trường được Decision Layer sử dụng.
-enum ENUM_MARKET_STATE
+enum ENUM_DECISION_ACTION
 {
-   MARKET_UNKNOWN = 0,
-   MARKET_TREND_UP,
-   MARKET_TREND_DOWN,
-   MARKET_RANGE,
-   MARKET_BREAKOUT
+   DECISION_WAIT = 0,
+   DECISION_BUY,
+   DECISION_SELL,
+   DECISION_BLOCK
 };
 
-// Chất lượng của tín hiệu sau khi chấm điểm.
-enum ENUM_SIGNAL_QUALITY
+enum ENUM_DECISION_REASON
 {
-   SIGNAL_BAD = 0,
-   SIGNAL_WEAK,
-   SIGNAL_NORMAL,
-   SIGNAL_GOOD,
-   SIGNAL_EXCELLENT
+   DECISION_REASON_NONE = 0,
+   DECISION_REASON_BUY_SCORE_APPROVED,
+   DECISION_REASON_SELL_SCORE_APPROVED,
+   DECISION_REASON_SCORE_TOO_LOW,
+   DECISION_REASON_ADVANTAGE_TOO_LOW,
+   DECISION_REASON_HIGH_VOLATILITY,
+   DECISION_REASON_SPREAD_TOO_HIGH,
+   DECISION_REASON_MARKET_DATA_INVALID,
+   DECISION_REASON_SIGNAL_DATA_INVALID,
+   DECISION_REASON_MEMORY_BLOCKED
 };
 
-// Dữ liệu làm việc hiện tại của Decision Engine.
-struct DecisionContext
+struct SDecisionContext
 {
-   ENUM_MARKET_STATE MarketState;
+   datetime timestamp;
 
-   double TrendScore;
-   double MomentumScore;
-   double VolumeScore;
-   double VolatilityScore;
+   ENUM_TRADE_SIGNAL signal;
+   ENUM_MARKET_REGIME marketRegime;
 
-   double BuyScore;
-   double SellScore;
+   double signalBuyScore;
+   double signalSellScore;
 
-   bool AllowBuy;
-   bool AllowSell;
+   double trendBuyScore;
+   double trendSellScore;
 
-   datetime TimeStamp;
+   double momentumBuyScore;
+   double momentumSellScore;
 
-   // Constructor mặc định.
-   DecisionContext()
-   {
-      Reset();
-   }
+   double volatilityScore;
+   double spreadScore;
 
-   // Đưa toàn bộ dữ liệu về trạng thái ban đầu.
+   double atrPoints;
+   double spreadPoints;
+
+   bool signalValid;
+   bool marketValid;
+
    void Reset()
    {
-      MarketState = MARKET_UNKNOWN;
+      timestamp = 0;
 
-      TrendScore      = 0.0;
-      MomentumScore   = 0.0;
-      VolumeScore     = 0.0;
-      VolatilityScore = 0.0;
+      signal       = SIGNAL_NONE;
+      marketRegime = MARKET_REGIME_UNKNOWN;
 
-      BuyScore  = 0.0;
-      SellScore = 0.0;
+      signalBuyScore  = 0.0;
+      signalSellScore = 0.0;
 
-      AllowBuy  = false;
-      AllowSell = false;
+      trendBuyScore  = 0.0;
+      trendSellScore = 0.0;
 
-      TimeStamp = TimeCurrent();
+      momentumBuyScore  = 0.0;
+      momentumSellScore = 0.0;
+
+      volatilityScore = 0.0;
+      spreadScore     = 0.0;
+
+      atrPoints    = 0.0;
+      spreadPoints = 0.0;
+
+      signalValid = false;
+      marketValid = false;
+   }
+
+   bool IsValid() const
+   {
+      return
+         signalValid &&
+         marketValid;
    }
 };
+
+string SGDPDecisionActionName(
+   const ENUM_DECISION_ACTION action
+)
+{
+   switch(action)
+   {
+      case DECISION_BUY:
+         return "BUY";
+
+      case DECISION_SELL:
+         return "SELL";
+
+      case DECISION_BLOCK:
+         return "BLOCK";
+
+      case DECISION_WAIT:
+         return "WAIT";
+   }
+
+   return "UNKNOWN";
+}
+
+string SGDPDecisionReasonName(
+   const ENUM_DECISION_REASON reason
+)
+{
+   switch(reason)
+   {
+      case DECISION_REASON_BUY_SCORE_APPROVED:
+         return "BUY_SCORE_APPROVED";
+
+      case DECISION_REASON_SELL_SCORE_APPROVED:
+         return "SELL_SCORE_APPROVED";
+
+      case DECISION_REASON_SCORE_TOO_LOW:
+         return "SCORE_TOO_LOW";
+
+      case DECISION_REASON_ADVANTAGE_TOO_LOW:
+         return "ADVANTAGE_TOO_LOW";
+
+      case DECISION_REASON_HIGH_VOLATILITY:
+         return "HIGH_VOLATILITY";
+
+      case DECISION_REASON_SPREAD_TOO_HIGH:
+         return "SPREAD_TOO_HIGH";
+
+      case DECISION_REASON_MARKET_DATA_INVALID:
+         return "MARKET_DATA_INVALID";
+
+      case DECISION_REASON_SIGNAL_DATA_INVALID:
+         return "SIGNAL_DATA_INVALID";
+
+      case DECISION_REASON_MEMORY_BLOCKED:
+         return "MEMORY_BLOCKED";
+
+      case DECISION_REASON_NONE:
+         return "NONE";
+   }
+
+   return "UNKNOWN";
+}
 
 #endif

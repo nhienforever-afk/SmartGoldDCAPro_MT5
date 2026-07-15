@@ -1,114 +1,137 @@
 #ifndef SMARTGOLDDCAPRO_DECISION_SNAPSHOT_MQH
 #define SMARTGOLDDCAPRO_DECISION_SNAPSHOT_MQH
 
+#include <SmartGoldDCAPro/Core/Types.mqh>
 #include <SmartGoldDCAPro/Decision/DecisionTypes.mqh>
 
 //+------------------------------------------------------------------+
-//| SmartGoldDCAPro - Decision Snapshot                              |
-//| Lưu kết quả đánh giá gần nhất của Decision Engine                |
+//| SmartGoldDCAPro Framework v2.0 - Decision Snapshot               |
 //+------------------------------------------------------------------+
-struct DecisionSnapshot
+struct SDecisionSnapshot
 {
-   datetime          TimeStamp;
-   string            Symbol;
-   ENUM_MARKET_STATE MarketState;
+   datetime timestamp;
 
-   double BuyScore;
-   double SellScore;
+   ENUM_DECISION_ACTION action;
+   ENUM_DECISION_REASON reasonCode;
 
-   double TrendScore;
-   double MomentumScore;
-   double VolumeScore;
-   double VolatilityScore;
-   double SpreadScore;
+   double buyScore;
+   double sellScore;
+   double scoreAdvantage;
 
-   bool AllowBuy;
-   bool AllowSell;
+   double confidence;
+   double quality;
 
-   string Decision;
-   string BuyQuality;
-   string SellQuality;
-   string Reason;
+   double buyTrendScore;
+   double sellTrendScore;
 
-   bool Valid;
+   double buyMomentumScore;
+   double sellMomentumScore;
 
-   // Khởi tạo toàn bộ dữ liệu về trạng thái mặc định.
+   double buySignalScore;
+   double sellSignalScore;
+
+   double volatilityScore;
+   double spreadScore;
+
+   double atrPoints;
+   double spreadPoints;
+
+   ENUM_MARKET_REGIME marketRegime;
+   ENUM_TRADE_SIGNAL  sourceSignal;
+
+   bool valid;
+   bool memoryBlocked;
+
+   string reason;
+
    void Reset()
    {
-      TimeStamp       = 0;
-      Symbol          = "";
-      MarketState     = MARKET_UNKNOWN;
+      timestamp = 0;
 
-      BuyScore        = 0.0;
-      SellScore       = 0.0;
+      action     = DECISION_WAIT;
+      reasonCode = DECISION_REASON_NONE;
 
-      TrendScore      = 0.0;
-      MomentumScore   = 0.0;
-      VolumeScore     = 0.0;
-      VolatilityScore = 0.0;
-      SpreadScore     = 0.0;
+      buyScore       = 0.0;
+      sellScore      = 0.0;
+      scoreAdvantage = 0.0;
 
-      AllowBuy        = false;
-      AllowSell       = false;
+      confidence = 0.0;
+      quality    = 0.0;
 
-      Decision        = "WAIT";
-      BuyQuality      = "BAD";
-      SellQuality     = "BAD";
-      Reason          = "No decision data";
+      buyTrendScore  = 0.0;
+      sellTrendScore = 0.0;
 
-      Valid           = false;
+      buyMomentumScore  = 0.0;
+      sellMomentumScore = 0.0;
+
+      buySignalScore  = 0.0;
+      sellSignalScore = 0.0;
+
+      volatilityScore = 0.0;
+      spreadScore     = 0.0;
+
+      atrPoints    = 0.0;
+      spreadPoints = 0.0;
+
+      marketRegime = MARKET_REGIME_UNKNOWN;
+      sourceSignal = SIGNAL_NONE;
+
+      valid         = false;
+      memoryBlocked = false;
+
+      reason =
+         "Decision has not been evaluated.";
    }
 
-   // Trả về tên trạng thái thị trường để hiển thị Dashboard/Journal.
-   string MarketStateName() const
+   bool HasTradeDecision() const
    {
-      switch(MarketState)
-      {
-         case MARKET_TREND_UP:
-            return "TREND UP";
-
-         case MARKET_TREND_DOWN:
-            return "TREND DOWN";
-
-         case MARKET_RANGE:
-            return "RANGE";
-
-         case MARKET_BREAKOUT:
-            return "BREAKOUT";
-
-         default:
-            return "UNKNOWN";
-      }
+      return
+         valid &&
+         (
+            action == DECISION_BUY ||
+            action == DECISION_SELL
+         );
    }
 
-   // Kiểm tra snapshot có cho phép bất kỳ hướng giao dịch nào không.
-   bool HasApprovedDirection() const
+   bool IsBlocked() const
    {
-      return AllowBuy || AllowSell;
+      return
+         valid &&
+         action == DECISION_BLOCK;
    }
 
-   // Trả về điểm cao nhất giữa BUY và SELL.
-   double BestScore() const
+   string ActionName() const
    {
-      return MathMax(BuyScore, SellScore);
+      return
+         SGDPDecisionActionName(
+            action
+         );
    }
 
-   // Trả về chênh lệch tuyệt đối giữa BUY và SELL.
-   double ScoreAdvantage() const
+   string ReasonName() const
    {
-      return MathAbs(BuyScore - SellScore);
+      return
+         SGDPDecisionReasonName(
+            reasonCode
+         );
+   }
+
+   string QualityName() const
+   {
+      if(quality >= 90.0)
+         return "EXCELLENT";
+
+      if(quality >= 80.0)
+         return "STRONG";
+
+      if(quality >= 70.0)
+         return "GOOD";
+
+      if(quality >= 55.0)
+         return "WEAK";
+
+      return "POOR";
    }
 };
-
-//+------------------------------------------------------------------+
-//| Tạo snapshot mặc định                                            |
-//+------------------------------------------------------------------+
-DecisionSnapshot CreateEmptyDecisionSnapshot()
-{
-   DecisionSnapshot snapshot;
-   snapshot.Reset();
-
-   return snapshot;
-}
 
 #endif

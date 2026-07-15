@@ -1,62 +1,45 @@
 #ifndef SMARTGOLDDCAPRO_DECISION_SCORE_MQH
 #define SMARTGOLDDCAPRO_DECISION_SCORE_MQH
 
+#include <SmartGoldDCAPro/Core/Types.mqh>
+
 //+------------------------------------------------------------------+
-//| SmartGoldDCAPro - Decision Score                                 |
-//| Tổng hợp các điểm phân tích thành một điểm quyết định 0-100      |
+//| SmartGoldDCAPro Framework v2.0 - Decision Score                  |
 //+------------------------------------------------------------------+
 class CDecisionScore
 {
 private:
    double m_trendScore;
    double m_momentumScore;
-   double m_volumeScore;
+   double m_signalScore;
    double m_volatilityScore;
    double m_spreadScore;
 
    double m_trendWeight;
    double m_momentumWeight;
-   double m_volumeWeight;
+   double m_signalWeight;
    double m_volatilityWeight;
    double m_spreadWeight;
-
-   double NormalizeScore(const double value) const
-   {
-      if(value < 0.0)
-         return 0.0;
-
-      if(value > 100.0)
-         return 100.0;
-
-      return value;
-   }
-
-   double NormalizeWeight(const double value) const
-   {
-      if(value < 0.0)
-         return 0.0;
-
-      return value;
-   }
 
 public:
    CDecisionScore()
    {
       Reset();
 
-      // Trọng số mặc định.
-      m_trendWeight      = 35.0;
-      m_momentumWeight   = 25.0;
-      m_volumeWeight     = 10.0;
-      m_volatilityWeight = 20.0;
-      m_spreadWeight     = 10.0;
+      SetWeights(
+         30.0,
+         20.0,
+         30.0,
+         10.0,
+         10.0
+      );
    }
 
    void Reset()
    {
       m_trendScore      = 0.0;
       m_momentumScore   = 0.0;
-      m_volumeScore     = 0.0;
+      m_signalScore     = 0.0;
       m_volatilityScore = 0.0;
       m_spreadScore     = 0.0;
    }
@@ -64,77 +47,109 @@ public:
    void SetWeights(
       const double trendWeight,
       const double momentumWeight,
-      const double volumeWeight,
+      const double signalWeight,
       const double volatilityWeight,
       const double spreadWeight
    )
    {
       m_trendWeight =
-         NormalizeWeight(trendWeight);
+         MathMax(
+            0.0,
+            trendWeight
+         );
 
       m_momentumWeight =
-         NormalizeWeight(momentumWeight);
+         MathMax(
+            0.0,
+            momentumWeight
+         );
 
-      m_volumeWeight =
-         NormalizeWeight(volumeWeight);
+      m_signalWeight =
+         MathMax(
+            0.0,
+            signalWeight
+         );
 
       m_volatilityWeight =
-         NormalizeWeight(volatilityWeight);
+         MathMax(
+            0.0,
+            volatilityWeight
+         );
 
       m_spreadWeight =
-         NormalizeWeight(spreadWeight);
+         MathMax(
+            0.0,
+            spreadWeight
+         );
    }
 
    void SetScores(
       const double trendScore,
       const double momentumScore,
-      const double volumeScore,
+      const double signalScore,
       const double volatilityScore,
       const double spreadScore
    )
    {
       m_trendScore =
-         NormalizeScore(trendScore);
+         SGDPNormalizeScore(
+            trendScore
+         );
 
       m_momentumScore =
-         NormalizeScore(momentumScore);
+         SGDPNormalizeScore(
+            momentumScore
+         );
 
-      m_volumeScore =
-         NormalizeScore(volumeScore);
+      m_signalScore =
+         SGDPNormalizeScore(
+            signalScore
+         );
 
       m_volatilityScore =
-         NormalizeScore(volatilityScore);
+         SGDPNormalizeScore(
+            volatilityScore
+         );
 
       m_spreadScore =
-         NormalizeScore(spreadScore);
+         SGDPNormalizeScore(
+            spreadScore
+         );
    }
 
-   double Total() const
+   double TotalWeight() const
    {
-      double totalWeight =
+      return
          m_trendWeight +
          m_momentumWeight +
-         m_volumeWeight +
+         m_signalWeight +
          m_volatilityWeight +
          m_spreadWeight;
+   }
+
+   double Calculate() const
+   {
+      double totalWeight =
+         TotalWeight();
 
       if(totalWeight <= 0.0)
          return 0.0;
 
       double weightedScore =
          m_trendScore *
-            m_trendWeight +
+         m_trendWeight +
          m_momentumScore *
-            m_momentumWeight +
-         m_volumeScore *
-            m_volumeWeight +
+         m_momentumWeight +
+         m_signalScore *
+         m_signalWeight +
          m_volatilityScore *
-            m_volatilityWeight +
+         m_volatilityWeight +
          m_spreadScore *
-            m_spreadWeight;
+         m_spreadWeight;
 
-      return NormalizeScore(
-         weightedScore / totalWeight
+      return SGDPNormalizeScore(
+         weightedScore /
+         totalWeight
       );
    }
 
@@ -148,9 +163,9 @@ public:
       return m_momentumScore;
    }
 
-   double VolumeScore() const
+   double SignalScore() const
    {
-      return m_volumeScore;
+      return m_signalScore;
    }
 
    double VolatilityScore() const
@@ -163,31 +178,29 @@ public:
       return m_spreadScore;
    }
 
-   string QualityName() const
+   double TrendWeight() const
    {
-      double score = Total();
-
-      if(score >= 85.0)
-         return "EXCELLENT";
-
-      if(score >= 70.0)
-         return "GOOD";
-
-      if(score >= 55.0)
-         return "NORMAL";
-
-      if(score >= 40.0)
-         return "WEAK";
-
-      return "BAD";
+      return m_trendWeight;
    }
 
-   bool IsApproved(
-      const double minimumScore
-   ) const
+   double MomentumWeight() const
    {
-      return Total() >=
-             NormalizeScore(minimumScore);
+      return m_momentumWeight;
+   }
+
+   double SignalWeight() const
+   {
+      return m_signalWeight;
+   }
+
+   double VolatilityWeight() const
+   {
+      return m_volatilityWeight;
+   }
+
+   double SpreadWeight() const
+   {
+      return m_spreadWeight;
    }
 };
 
