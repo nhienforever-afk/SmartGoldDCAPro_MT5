@@ -1,122 +1,58 @@
-#ifndef SMARTGOLDDCAPRO_SMART_LOT_CALCULATOR_MQH
-#define SMARTGOLDDCAPRO_SMART_LOT_CALCULATOR_MQH
+#ifndef SMARTGOLDDCAPRO_RISK_SMART_LOT_CALCULATOR_MQH
+#define SMARTGOLDDCAPRO_RISK_SMART_LOT_CALCULATOR_MQH
 
+#include <SmartGoldDCAPro/Core/Types.mqh>
 #include <SmartGoldDCAPro/Core/RiskManager.mqh>
 
 //+------------------------------------------------------------------+
-//| SmartGoldDCAPro - Smart Lot Calculator                           |
+//| SmartGoldDCAPro Framework v2.0 - Smart Lot Calculator            |
+//| Tính lot theo multiplier, drawdown và điều kiện margin           |
 //+------------------------------------------------------------------+
 class CSmartLotCalculator
 {
 private:
    CRiskManager *m_risk;
 
-   double NormalizeLotForSymbol(
-      const string symbol,
-      const double lot
+   // Hệ số giảm lot theo drawdown.
+   double DrawdownFactor(
+      const double drawdownPercent
    ) const
    {
-      double minimumLot =
-         SymbolInfoDouble(
-            symbol,
-            SYMBOL_VOLUME_MIN
-         );
+      if(drawdownPercent >= 20.0)
+         return 0.40;
 
-      double maximumLot =
-         SymbolInfoDouble(
-            symbol,
-            SYMBOL_VOLUME_MAX
-         );
+      if(drawdownPercent >= 15.0)
+         return 0.55;
 
-      double lotStep =
-         SymbolInfoDouble(
-            symbol,
-            SYMBOL_VOLUME_STEP
-         );
+      if(drawdownPercent >= 10.0)
+         return 0.70;
 
-      if(minimumLot <= 0.0 ||
-         maximumLot <= 0.0 ||
-         lotStep <= 0.0)
-      {
-         return 0.0;
-      }
-
-      double normalizedLot =
-         MathFloor(
-            lot / lotStep
-         ) * lotStep;
-
-      normalizedLot =
-         MathMax(
-            minimumLot,
-            normalizedLot
-         );
-
-      normalizedLot =
-         MathMin(
-            maximumLot,
-            normalizedLot
-         );
-
-      int volumeDigits = 2;
-
-      if(lotStep == 1.0)
-         volumeDigits = 0;
-      else if(lotStep == 0.1)
-         volumeDigits = 1;
-      else if(lotStep == 0.01)
-         volumeDigits = 2;
-      else if(lotStep == 0.001)
-         volumeDigits = 3;
-
-      return NormalizeDouble(
-         normalizedLot,
-         volumeDigits
-      );
-   }
-
-   double DrawdownFactor() const
-   {
-      if(m_risk == NULL)
-         return 1.0;
-
-      double drawdown =
-         m_risk.EquityDrawdownPercent();
-
-      if(drawdown >= 20.0)
-         return 0.50;
-
-      if(drawdown >= 15.0)
-         return 0.65;
-
-      if(drawdown >= 10.0)
-         return 0.80;
-
-      if(drawdown >= 5.0)
-         return 0.90;
+      if(drawdownPercent >= 5.0)
+         return 0.85;
 
       return 1.0;
    }
 
+   // Hệ số giảm lot theo mức sử dụng margin.
    double MarginFactor() const
    {
       if(m_risk == NULL)
          return 1.0;
 
-      double usage =
+      double marginUsage =
          m_risk.MarginUsagePercent();
 
-      if(usage >= 80.0)
+      if(marginUsage >= 80.0)
          return 0.0;
 
-      if(usage >= 70.0)
-         return 0.50;
+      if(marginUsage >= 70.0)
+         return 0.40;
 
-      if(usage >= 60.0)
-         return 0.70;
+      if(marginUsage >= 60.0)
+         return 0.60;
 
-      if(usage >= 50.0)
-         return 0.85;
+      if(marginUsage >= 50.0)
+         return 0.80;
 
       return 1.0;
    }
@@ -127,6 +63,7 @@ public:
       m_risk = NULL;
    }
 
+   // Kết nối Risk Manager.
    void Initialize(
       CRiskManager &risk
    )
@@ -134,19 +71,41 @@ public:
       m_risk = &risk;
    }
 
-   double CalculateNextLot(
-      const string symbol,
-      const double previousLot,
-      const double multiplier,
-      const double maximumLot
+   bool IsInitialized() const
+   {
+      return m_risk != NULL;
+   }
+
+   // Chuẩn hóa lot bằng Risk Manager.
+   double NormalizeLot(
+      const double lot
    ) const
    {
-      if(previousLot <= 0.0 ||
-         multiplier <= 0.0 ||
-         maximumLot <= 0.0)
-      {
+      if(m_risk == NULL)
          return 0.0;
-      }
+
+      return m_risk.NormalizeLot(lot);
+   }
+
+   // Tính lot kế tiếp theo drawdown được truyền vào.
+   double CalculateNextLot(
+      const double previousLot,
+      const double multiplier,
+      const double maximumLot,
+      const double drawdownPercent
+   ) const
+   {
+      if(m_risk == NULL)
+         return 0.0;
+
+      if(previousLot <= 0.0)
+         return 0.0;
+
+      if(multiplier <= 0.0)
+         return 0.0;
+
+      if(maximumLot <= 0.0)
+         return 0.0;
 
       double marginFactor =
          MarginFactor();
@@ -157,7 +116,7 @@ public:
       double nextLot =
          previousLot *
          multiplier *
-         DrawdownFactor() *
+         DrawdownFactor(drawdownPercent) *
          marginFactor;
 
       nextLot =
@@ -166,47 +125,89 @@ public:
             maximumLot
          );
 
-      return NormalizeLotForSymbol(
-         symbol,
+      return m_risk.NormalizeLot(
          nextLot
       );
    }
 
-   double NormalizeLot(
-      const string symbol,
-      const double lot
+   // Phiên bản tự lấy drawdown từ Risk Manager.
+   double CalculateNextLot(
+      const double previousLot,
+      const double multiplier,
+      const double maximumLot
    ) const
    {
-      return NormalizeLotForSymbol(
-         symbol,
-         lot
+      if(m_risk == NULL)
+         return 0.0;
+
+      return CalculateNextLot(
+         previousLot,
+         multiplier,
+         maximumLot,
+         m_risk.CurrentDrawdownPercent()
       );
    }
 
+   // Tính lot cố định nhưng vẫn chuẩn hóa theo symbol.
+   double CalculateFixedLot(
+      const double requestedLot,
+      const double maximumLot
+   ) const
+   {
+      if(m_risk == NULL)
+         return 0.0;
+
+      if(requestedLot <= 0.0 ||
+         maximumLot <= 0.0)
+      {
+         return 0.0;
+      }
+
+      double lot =
+         MathMin(
+            requestedLot,
+            maximumLot
+         );
+
+      return m_risk.NormalizeLot(lot);
+   }
+
+   // Kiểm tra margin trước khi cho phép DCA.
    bool IsMarginSafe(
       const double minimumMarginLevelPercent,
       const double minimumFreeMarginMoney,
       string &reason
    ) const
    {
+      reason = "";
+
+      if(m_risk == NULL)
+      {
+         reason =
+            "Smart Lot Calculator is not initialized.";
+
+         return false;
+      }
+
       double freeMargin =
-         AccountInfoDouble(
-            ACCOUNT_MARGIN_FREE
-         );
+         m_risk.FreeMargin();
 
       double marginLevel =
-         AccountInfoDouble(
-            ACCOUNT_MARGIN_LEVEL
-         );
+         m_risk.MarginLevel();
 
       if(minimumFreeMarginMoney > 0.0 &&
          freeMargin <
          minimumFreeMarginMoney)
       {
          reason =
-            "Free margin is too low: " +
+            "Free margin is too low. Current=" +
             DoubleToString(
                freeMargin,
+               2
+            ) +
+            ", minimum=" +
+            DoubleToString(
+               minimumFreeMarginMoney,
                2
             );
 
@@ -219,9 +220,14 @@ public:
          minimumMarginLevelPercent)
       {
          reason =
-            "Margin level is too low: " +
+            "Margin level is too low. Current=" +
             DoubleToString(
                marginLevel,
+               2
+            ) +
+            "%, minimum=" +
+            DoubleToString(
+               minimumMarginLevelPercent,
                2
             ) +
             "%";
@@ -229,10 +235,13 @@ public:
          return false;
       }
 
-      reason = "Margin conditions are valid.";
+      reason =
+         "Margin conditions are valid.";
+
       return true;
    }
 
+   // Tính Risk Score trong khoảng 0–100.
    int CalculateRiskScore(
       const int openPositions,
       const int spreadPoints,
@@ -241,18 +250,20 @@ public:
       const double highVolatilityATRPoints
    ) const
    {
-      double score = 0.0;
+      double riskScore = 0.0;
 
+      // Drawdown tối đa đóng góp 40 điểm.
       if(m_risk != NULL)
       {
-         score +=
+         riskScore +=
             MathMin(
                40.0,
-               m_risk.EquityDrawdownPercent() *
+               m_risk.CurrentDrawdownPercent() *
                2.0
             );
 
-         score +=
+         // Margin usage tối đa đóng góp 20 điểm.
+         riskScore +=
             MathMin(
                20.0,
                m_risk.MarginUsagePercent() *
@@ -260,63 +271,86 @@ public:
             );
       }
 
-      score +=
+      // Số lượng position tối đa đóng góp 20 điểm.
+      riskScore +=
          MathMin(
             20.0,
-            openPositions *
+            MathMax(
+               0,
+               openPositions
+            ) *
             4.0
          );
 
+      // Spread tối đa đóng góp 10 điểm.
       if(maximumSpreadPoints > 0)
       {
-         score +=
+         double spreadRatio =
+            (double)MathMax(
+               0,
+               spreadPoints
+            ) /
+            (double)maximumSpreadPoints;
+
+         riskScore +=
             MathMin(
                10.0,
-               (
-                  (double)spreadPoints /
-                  (double)maximumSpreadPoints
-               ) *
+               spreadRatio *
                10.0
             );
       }
 
+      // ATR tối đa đóng góp 10 điểm.
       if(highVolatilityATRPoints > 0.0)
       {
-         score +=
+         double atrRatio =
+            MathMax(
+               0.0,
+               atrPoints
+            ) /
+            highVolatilityATRPoints;
+
+         riskScore +=
             MathMin(
                10.0,
-               (
-                  atrPoints /
-                  highVolatilityATRPoints
-               ) *
+               atrRatio *
                10.0
             );
       }
 
-      score =
-         MathMax(
-            0.0,
-            MathMin(
-               100.0,
-               score
-            )
+      riskScore =
+         SGDPNormalizeScore(
+            riskScore
          );
 
-      return (int)MathRound(score);
+      return (int)MathRound(
+         riskScore
+      );
    }
 
    double CurrentMarginLevel() const
    {
-      return AccountInfoDouble(
-         ACCOUNT_MARGIN_LEVEL
-      );
+      if(m_risk == NULL)
+         return 0.0;
+
+      return m_risk.MarginLevel();
    }
 
    double CurrentFreeMargin() const
    {
-      return AccountInfoDouble(
-         ACCOUNT_MARGIN_FREE
-      );
+      if(m_risk == NULL)
+         return 0.0;
+
+      return m_risk.FreeMargin();
+   }
+
+   double CurrentDrawdownPercent() const
+   {
+      if(m_risk == NULL)
+         return 0.0;
+
+      return
+         m_risk.CurrentDrawdownPercent();
    }
 };
 

@@ -1,41 +1,34 @@
-#ifndef SMARTGOLDDCAPRO_LOGGER_MQH
-#define SMARTGOLDDCAPRO_LOGGER_MQH
+#ifndef SMARTGOLDDCAPRO_CORE_LOGGER_MQH
+#define SMARTGOLDDCAPRO_CORE_LOGGER_MQH
+
+#include <SmartGoldDCAPro/Core/Types.mqh>
 
 //+------------------------------------------------------------------+
-//| SmartGoldDCAPro - Logger                                         |
+//| SmartGoldDCAPro Framework v2.0 - Logger                          |
 //+------------------------------------------------------------------+
-
-enum ENUM_LOG_LEVEL
-{
-   LOG_DEBUG = 0,
-   LOG_INFO,
-   LOG_WARNING,
-   LOG_ERROR
-};
-
 class CLogger
 {
 private:
-   string         m_name;
-   ENUM_LOG_LEVEL m_minimumLevel;
-   bool           m_enabled;
+   string              m_name;
+   ENUM_SGDP_LOG_LEVEL m_minimumLevel;
+   bool                m_enabled;
 
    string LevelName(
-      const ENUM_LOG_LEVEL level
+      const ENUM_SGDP_LOG_LEVEL level
    ) const
    {
       switch(level)
       {
-         case LOG_DEBUG:
+         case SGDP_LOG_DEBUG:
             return "DEBUG";
 
-         case LOG_INFO:
+         case SGDP_LOG_INFO:
             return "INFO";
 
-         case LOG_WARNING:
+         case SGDP_LOG_WARNING:
             return "WARNING";
 
-         case LOG_ERROR:
+         case SGDP_LOG_ERROR:
             return "ERROR";
       }
 
@@ -43,7 +36,7 @@ private:
    }
 
    bool CanWrite(
-      const ENUM_LOG_LEVEL level
+      const ENUM_SGDP_LOG_LEVEL level
    ) const
    {
       if(!m_enabled)
@@ -52,8 +45,8 @@ private:
       return level >= m_minimumLevel;
    }
 
-   void Write(
-      const ENUM_LOG_LEVEL level,
+   void WriteInternal(
+      const ENUM_SGDP_LOG_LEVEL level,
       const string message
    ) const
    {
@@ -74,13 +67,13 @@ public:
    CLogger()
    {
       m_name         = "SmartGoldDCAPro";
-      m_minimumLevel = LOG_INFO;
+      m_minimumLevel = SGDP_LOG_INFO;
       m_enabled      = true;
    }
 
    void Initialize(
       const string name,
-      const ENUM_LOG_LEVEL minimumLevel = LOG_INFO,
+      const ENUM_SGDP_LOG_LEVEL minimumLevel = SGDP_LOG_INFO,
       const bool enabled = true
    )
    {
@@ -102,13 +95,13 @@ public:
    }
 
    void SetMinimumLevel(
-      const ENUM_LOG_LEVEL level
+      const ENUM_SGDP_LOG_LEVEL level
    )
    {
       m_minimumLevel = level;
    }
 
-   ENUM_LOG_LEVEL MinimumLevel() const
+   ENUM_SGDP_LOG_LEVEL MinimumLevel() const
    {
       return m_minimumLevel;
    }
@@ -117,8 +110,8 @@ public:
       const string message
    ) const
    {
-      Write(
-         LOG_DEBUG,
+      WriteInternal(
+         SGDP_LOG_DEBUG,
          message
       );
    }
@@ -127,8 +120,8 @@ public:
       const string message
    ) const
    {
-      Write(
-         LOG_INFO,
+      WriteInternal(
+         SGDP_LOG_INFO,
          message
       );
    }
@@ -137,8 +130,8 @@ public:
       const string message
    ) const
    {
-      Write(
-         LOG_WARNING,
+      WriteInternal(
+         SGDP_LOG_WARNING,
          message
       );
    }
@@ -147,8 +140,8 @@ public:
       const string message
    ) const
    {
-      Write(
-         LOG_ERROR,
+      WriteInternal(
+         SGDP_LOG_ERROR,
          message
       );
    }

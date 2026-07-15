@@ -1,8 +1,9 @@
-#ifndef SMARTGOLDDCAPRO_DAILY_RISK_MANAGER_MQH
-#define SMARTGOLDDCAPRO_DAILY_RISK_MANAGER_MQH
+#ifndef SMARTGOLDDCAPRO_RISK_DAILY_RISK_MANAGER_MQH
+#define SMARTGOLDDCAPRO_RISK_DAILY_RISK_MANAGER_MQH
 
 //+------------------------------------------------------------------+
-//| SmartGoldDCAPro - Daily Risk Manager                             |
+//| SmartGoldDCAPro Framework v2.0 - Daily Risk Manager              |
+//| Theo dõi mức lỗ trong ngày và khóa giao dịch khi vượt giới hạn   |
 //+------------------------------------------------------------------+
 class CDailyRiskManager
 {
@@ -10,15 +11,24 @@ private:
    double   m_maxDailyLossMoney;
    double   m_dayStartBalance;
    datetime m_dayStartTime;
+
    bool     m_blocked;
    string   m_lastReason;
 
+   // Trả về thời điểm 00:00:00 của ngày chứa thời gian đầu vào.
    datetime StartOfDay(
       const datetime value
    ) const
    {
       MqlDateTime parts;
-      TimeToStruct(value, parts);
+
+      if(!TimeToStruct(
+            value,
+            parts
+         ))
+      {
+         return 0;
+      }
 
       parts.hour = 0;
       parts.min  = 0;
@@ -27,16 +37,31 @@ private:
       return StructToTime(parts);
    }
 
+   // Kiểm tra đã chuyển sang ngày giao dịch mới chưa.
    bool IsNewTradingDay() const
    {
-      return
-         StartOfDay(TimeCurrent()) !=
-         StartOfDay(m_dayStartTime);
+      if(m_dayStartTime <= 0)
+         return true;
+
+      datetime currentDay =
+         StartOfDay(
+            TimeCurrent()
+         );
+
+      datetime storedDay =
+         StartOfDay(
+            m_dayStartTime
+         );
+
+      return currentDay != storedDay;
    }
 
+   // Đặt lại dữ liệu bảo vệ cho ngày mới.
    void ResetDay()
    {
-      m_dayStartTime    = TimeCurrent();
+      m_dayStartTime =
+         TimeCurrent();
+
       m_dayStartBalance =
          AccountInfoDouble(
             ACCOUNT_BALANCE
@@ -52,10 +77,12 @@ public:
       m_maxDailyLossMoney = 0.0;
       m_dayStartBalance   = 0.0;
       m_dayStartTime      = 0;
-      m_blocked           = false;
-      m_lastReason        = "";
+
+      m_blocked    = false;
+      m_lastReason = "";
    }
 
+   // Khởi tạo theo API được EA chính sử dụng.
    void Initialize(
       const double maxDailyLossMoney
    )
@@ -69,89 +96,11 @@ public:
       ResetDay();
    }
 
+   // Tự động cập nhật khi bước sang ngày mới.
    void RefreshDay()
    {
-      if(m_dayStartTime == 0 ||
-         IsNewTradingDay())
-      {
+      if(IsNewTradingDay())
          ResetDay();
-      }
-   }
-
-   double CurrentDailyProfit() const
-   {
-      double currentEquity =
-         AccountInfoDouble(
-            ACCOUNT_EQUITY
-         );
-
-      return
-         currentEquity -
-         m_dayStartBalance;
-   }
-
-   double CurrentDailyLoss() const
-   {
-      double profit =
-         CurrentDailyProfit();
-
-      if(profit >= 0.0)
-         return 0.0;
-
-      return -profit;
-   }
-
-   bool CanTrade()
-   {
-      RefreshDay();
-
-      m_lastReason = "";
-
-      if(m_maxDailyLossMoney <= 0.0)
-         return true;
-
-      double dailyLoss =
-         CurrentDailyLoss();
-
-      if(dailyLoss >=
-         m_maxDailyLossMoney)
-      {
-         m_blocked = true;
-
-         m_lastReason =
-            "Maximum daily loss reached: " +
-            DoubleToString(
-               dailyLoss,
-               2
-            );
-
-         return false;
-      }
-
-      return !m_blocked;
-   }
-
-   bool IsBlocked()
-   {
-      RefreshDay();
-      CanTrade();
-
-      return m_blocked;
-   }
-
-   void ResetProtection()
-   {
-      ResetDay();
-   }
-
-   string LastReason() const
-   {
-      return m_lastReason;
-   }
-
-   double MaxDailyLossMoney() const
-   {
-      return m_maxDailyLossMoney;
    }
 
    double DayStartBalance() const
@@ -162,6 +111,96 @@ public:
    datetime DayStartTime() const
    {
       return m_dayStartTime;
+   }
+
+   double MaximumDailyLossMoney() const
+   {
+      return m_maxDailyLossMoney;
+   }
+
+   // Lợi nhuận hiện tại so với balance đầu ngày.
+   double CurrentDailyProfit()
+   {
+      RefreshDay();
+
+      double currentEquity =
+         AccountInfoDouble(
+            ACCOUNT_EQUITY
+         );
+
+      return
+         currentEquity -
+         m_dayStartBalance;
+   }
+
+   // Giá trị lỗ trong ngày, luôn là số dương.
+   double CurrentDailyLoss()
+   {
+      double dailyProfit =
+         CurrentDailyProfit();
+
+      if(dailyProfit >= 0.0)
+         return 0.0;
+
+      return -dailyProfit;
+   }
+
+   // Kiểm tra tài khoản có được phép tiếp tục giao dịch không.
+   bool CanTrade()
+   {
+      RefreshDay();
+
+      if(m_blocked)
+         return false;
+
+      m_lastReason = "";
+
+      // Giá trị 0 nghĩa là tắt Daily Loss Protection.
+      if(m_maxDailyLossMoney <= 0.0)
+         return true;
+
+      double dailyLoss =
+         CurrentDailyLoss();
+
+      if(dailyLoss <
+         m_maxDailyLossMoney)
+      {
+         return true;
+      }
+
+      m_blocked = true;
+
+      m_lastReason =
+         "Daily loss protection triggered. Current loss=" +
+         DoubleToString(
+            dailyLoss,
+            2
+         ) +
+         ", maximum=" +
+         DoubleToString(
+            m_maxDailyLossMoney,
+            2
+         );
+
+      return false;
+   }
+
+   // API đang được EA chính sử dụng.
+   bool IsBlocked()
+   {
+      CanTrade();
+      return m_blocked;
+   }
+
+   string LastReason() const
+   {
+      return m_lastReason;
+   }
+
+   // Đặt lại bảo vệ thủ công.
+   void ResetProtection()
+   {
+      ResetDay();
    }
 };
 

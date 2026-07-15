@@ -1,98 +1,159 @@
-#ifndef SMARTGOLDDCAPRO_INPUTS_MQH
-#define SMARTGOLDDCAPRO_INPUTS_MQH
+#ifndef SMARTGOLDDCAPRO_CORE_INPUTS_MQH
+#define SMARTGOLDDCAPRO_CORE_INPUTS_MQH
 
 #include <SmartGoldDCAPro/Core/Types.mqh>
 
+//+------------------------------------------------------------------+
+//| SmartGoldDCAPro Framework v2.0 - Inputs                          |
+//+------------------------------------------------------------------+
+
 input group "=== GENERAL ==="
-input long                InpMagicNumber             = 260713;
-input string              InpTradeComment            = "SmartGoldDCAPro";
-input bool                InpAllowNewTrades          = true;
-input bool                InpRequireGoldSymbol       = true;
-input ENUM_DIRECTION_MODE InpDirectionMode           = DIRECTION_AUTO;
-input int                 InpTradeCooldownSeconds    = 20;
+
+input long   InpMagicNumber          = 260713;
+input string InpTradeComment         = "SmartGoldDCAPro";
+input bool   InpAllowNewTrades       = true;
+input bool   InpRequireGoldSymbol    = true;
+input int    InpTradeCooldownSeconds = 20;
 
 input group "=== EXECUTION ==="
-input double              InpInitialLot              = 0.01;
-input int                 InpMaximumSpreadPoints     = 80;
-input int                 InpSlippagePoints          = 30;
 
-input group "=== INDICATOR SWITCHES ==="
-input bool                InpUseEMAFilter            = true;
-input bool                InpUseRSIFilter            = true;
-input bool                InpUseADXFilter            = false;
-input bool                InpUseATRFilter            = true;
+input double InpInitialLot          = 0.01;
+input int    InpMaximumSpreadPoints = 80;
+input int    InpSlippagePoints      = 30;
 
-input group "=== SIGNAL BUILDER ==="
-input bool                InpUseWeightedSignal       = true;
-input double              InpMinimumSignalScore      = 65.0;
-input double              InpMinimumScoreAdvantage  = 10.0;
-input double              InpEMAWeight               = 40.0;
-input double              InpRSIWeight               = 25.0;
-input double              InpADXWeight               = 35.0;
+input group "=== SIGNAL SWITCHES ==="
+
+input bool InpUseEMAFilter = true;
+input bool InpUseRSIFilter = true;
+input bool InpUseADXFilter = true;
+input bool InpUseATRFilter = true;
 
 input group "=== SIGNAL PARAMETERS ==="
-input ENUM_TIMEFRAMES     InpSignalTimeframe         = PERIOD_M15;
-input int                 InpFastEMAPeriod           = 20;
-input int                 InpSlowEMAPeriod           = 50;
-input int                 InpRSIPeriod               = 14;
-input double              InpRSIBuyMinimum           = 52.0;
-input double              InpRSISellMaximum          = 48.0;
-input int                 InpADXPeriod               = 14;
-input double              InpMinimumADX              = 20.0;
-input int                 InpATRPeriod               = 14;
-input double              InpMinimumATRPoints        = 100.0;
 
-input group "=== DCA CONTROL MODE ==="
-input ENUM_DCA_CONTROL_MODE InpDCAControlMode        = DCA_CONTROL_SMART;
-input bool                  InpEnableDCA              = true;
-input int                   InpMaximumDCALevels       = 6;
+input ENUM_TIMEFRAMES InpSignalTimeframe = PERIOD_M15;
 
-input group "=== SMART DCA MODE ==="
-input double              InpDCADistancePoints       = 500.0;
-input double              InpLotMultiplier           = 1.30;
-input double              InpMaximumLot              = 1.00;
-input bool                InpUseAdaptiveGrid         = true;
-input double              InpGridATRMultiplier       = 1.50;
-input double              InpMinimumGridPoints       = 200.0;
-input double              InpMaximumGridPoints       = 1200.0;
-input double              InpHighVolatilityATRPoints = 800.0;
-input bool                InpBlockDCAInHighVolatility = true;
+input int InpFastEMAPeriod = 20;
+input int InpSlowEMAPeriod = 50;
 
-input group "=== MANUAL DCA MODE ==="
-input double              InpManualInitialLot        = 0.01;
-input double              InpManualDCALot            = 0.01;
-input double              InpManualDCADistancePoints = 500.0;
+input int    InpRSIPeriod      = 14;
+input double InpRSIBuyMinimum  = 52.0;
+input double InpRSISellMaximum = 48.0;
 
-input group "=== SMART SAFETY ACTIVATION ==="
-input bool                InpEnableSmartSafety                  = true;
-input int                 InpSmartSafetyStartOrder              = 3;
-input bool                InpSmartSafetyUseRiskScore            = true;
-input bool                InpSmartSafetyUseMarginProtection     = true;
-input bool                InpSmartSafetyUseHighVolatilityBlock  = true;
+input int    InpADXPeriod  = 14;
+input double InpMinimumADX = 20.0;
 
-input group "=== MARGIN & RISK PROTECTION ==="
-input double              InpMinimumMarginLevelPercent = 200.0;
-input double              InpMinimumFreeMarginMoney    = 100.0;
-input int                 InpMaximumRiskScoreForDCA    = 70;
+input int    InpATRPeriod        = 14;
+input double InpMinimumATRPoints = 100.0;
 
-input group "=== BASKET EXIT (ACCOUNT CURRENCY) ==="
-input double              InpBasketTakeProfitMoney    = 10.0;
-input double              InpBasketStopLossMoney      = 50.0;
+input group "=== WEIGHTED SIGNAL ==="
+
+input bool   InpUseWeightedSignal      = true;
+input double InpMinimumSignalScore     = 65.0;
+input double InpMinimumScoreAdvantage  = 10.0;
+
+input double InpEMAWeight = 40.0;
+input double InpRSIWeight = 25.0;
+input double InpADXWeight = 35.0;
+
+input group "=== DCA CONTROL ==="
+
+input bool                  InpEnableDCA        = true;
+input ENUM_DCA_CONTROL_MODE InpDCAControlMode  = DCA_CONTROL_ADAPTIVE;
+input int                   InpMaximumDCALevels = 6;
+
+input group "=== FIXED / ADAPTIVE DCA ==="
+
+input double InpDCADistancePoints = 500.0;
+
+input bool   InpUseAdaptiveGrid   = true;
+input double InpGridATRMultiplier = 1.50;
+
+input double InpMinimumGridPoints = 200.0;
+input double InpMaximumGridPoints = 1200.0;
+
+input double InpHighVolatilityATRPoints = 800.0;
+input bool   InpBlockDCAInHighVolatility = true;
+
+input group "=== MANUAL DCA ==="
+
+input double InpManualInitialLot        = 0.01;
+input double InpManualDCALot            = 0.01;
+input double InpManualDCADistancePoints = 500.0;
+
+input group "=== LOT CONTROL ==="
+
+input ENUM_LOT_MODE InpLotMode      = LOT_MODE_SMART_RISK;
+input double        InpLotMultiplier = 1.30;
+input double        InpMaximumLot    = 1.00;
+
+input group "=== SMART SAFETY ==="
+
+input bool InpEnableSmartSafety = true;
+input int  InpSmartSafetyStartOrder = 3;
+
+input bool InpSmartSafetyUseRiskScore =
+   true;
+
+input bool InpSmartSafetyUseMarginProtection =
+   true;
+
+input bool InpSmartSafetyUseHighVolatilityBlock =
+   true;
+
+input group "=== MARGIN AND RISK ==="
+
+input double InpMinimumMarginLevelPercent =
+   200.0;
+
+input double InpMinimumFreeMarginMoney =
+   100.0;
+
+input int InpMaximumRiskScoreForDCA =
+   70;
+
+input group "=== BASKET EXIT ==="
+
+input double InpBasketTakeProfitMoney =
+   10.0;
+
+input double InpBasketStopLossMoney =
+   50.0;
 
 input group "=== ACCOUNT PROTECTION ==="
-input double              InpMaxEquityDrawdownPercent = 15.0;
-input bool                InpCloseBasketOnEquityProtection = true;
 
-input group "=== SESSION FILTER ==="
-input bool                InpEnableSessionFilter      = false;
-input int                 InpSessionStartHour         = 7;
-input int                 InpSessionEndHour           = 22;
+input double InpMaxEquityDrawdownPercent =
+   15.0;
+
+input bool InpCloseBasketOnEquityProtection =
+   true;
 
 input group "=== DAILY PROTECTION ==="
-input double              InpMaxDailyLossMoney        = 0.0;
+
+input double InpMaxDailyLossMoney =
+   0.0;
+
+input group "=== SESSION FILTER ==="
+
+input bool InpEnableSessionFilter =
+   false;
+
+input int InpSessionStartHour =
+   7;
+
+input int InpSessionEndHour =
+   22;
 
 input group "=== JOURNAL ==="
-input bool                InpEnableTradeJournal       = true;
-input string              InpTradeJournalFile         = "SmartGoldDCAPro_Journal.csv";
+
+input bool InpEnableTradeJournal =
+   true;
+
+input string InpTradeJournalFile =
+   "SmartGoldDCAPro_Journal.csv";
+
+input group "=== DASHBOARD ==="
+
+input bool InpEnableDashboard =
+   true;
 
 #endif

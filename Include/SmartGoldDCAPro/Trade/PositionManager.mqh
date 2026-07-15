@@ -1,9 +1,11 @@
-#ifndef SMARTGOLDDCAPRO_POSITION_MANAGER_MQH
-#define SMARTGOLDDCAPRO_POSITION_MANAGER_MQH
+#ifndef SMARTGOLDDCAPRO_TRADE_POSITION_MANAGER_MQH
+#define SMARTGOLDDCAPRO_TRADE_POSITION_MANAGER_MQH
+
+#include <SmartGoldDCAPro/Core/Types.mqh>
 
 //+------------------------------------------------------------------+
-//| SmartGoldDCAPro - Position Manager                               |
-//| Quản lý các position theo Symbol và Magic Number                 |
+//| SmartGoldDCAPro Framework v2.0 - Position Manager                |
+//| Quản lý position theo Symbol và Magic Number                     |
 //+------------------------------------------------------------------+
 class CPositionManager
 {
@@ -11,30 +13,8 @@ private:
    string m_symbol;
    long   m_magicNumber;
 
-   // Kiểm tra position đang được chọn có thuộc EA hay không.
-   bool IsSelectedPositionManaged() const
-   {
-      string positionSymbol =
-         PositionGetString(
-            POSITION_SYMBOL
-         );
-
-      long positionMagic =
-         PositionGetInteger(
-            POSITION_MAGIC
-         );
-
-      if(positionSymbol != m_symbol)
-         return false;
-
-      if(positionMagic != m_magicNumber)
-         return false;
-
-      return true;
-   }
-
-   // Chọn position theo chỉ số trong danh sách position hiện tại.
-   bool SelectPositionByIndex(
+   // Chọn position theo vị trí trong danh sách hiện tại.
+   bool SelectByIndex(
       const int index
    ) const
    {
@@ -53,6 +33,37 @@ private:
       return PositionSelectByTicket(ticket);
    }
 
+   // Kiểm tra position đang được chọn có thuộc EA hay không.
+   bool IsSelectedManagedPosition() const
+   {
+      string selectedSymbol =
+         PositionGetString(
+            POSITION_SYMBOL
+         );
+
+      long selectedMagic =
+         PositionGetInteger(
+            POSITION_MAGIC
+         );
+
+      return
+         selectedSymbol == m_symbol &&
+         selectedMagic == m_magicNumber;
+   }
+
+   bool IsSelectedType(
+      const ENUM_POSITION_TYPE requiredType
+   ) const
+   {
+      ENUM_POSITION_TYPE currentType =
+         (ENUM_POSITION_TYPE)
+         PositionGetInteger(
+            POSITION_TYPE
+         );
+
+      return currentType == requiredType;
+   }
+
 public:
    CPositionManager()
    {
@@ -60,7 +71,7 @@ public:
       m_magicNumber = 0;
    }
 
-   // Khởi tạo bộ quản lý position.
+   // Khởi tạo đúng API đang được EA chính sử dụng.
    void Initialize(
       const string symbol,
       const long magicNumber
@@ -70,13 +81,11 @@ public:
       m_magicNumber = magicNumber;
    }
 
-   // Symbol được quản lý.
    string Symbol() const
    {
       return m_symbol;
    }
 
-   // Magic Number được quản lý.
    long MagicNumber() const
    {
       return m_magicNumber;
@@ -91,10 +100,10 @@ public:
           index < PositionsTotal();
           index++)
       {
-         if(!SelectPositionByIndex(index))
+         if(!SelectByIndex(index))
             continue;
 
-         if(!IsSelectedPositionManaged())
+         if(!IsSelectedManagedPosition())
             continue;
 
          count++;
@@ -103,358 +112,200 @@ public:
       return count;
    }
 
-   // Đếm position BUY.
+   int CountByType(
+      const ENUM_POSITION_TYPE requiredType
+   ) const
+   {
+      int count = 0;
+
+      for(int index = 0;
+          index < PositionsTotal();
+          index++)
+      {
+         if(!SelectByIndex(index))
+            continue;
+
+         if(!IsSelectedManagedPosition())
+            continue;
+
+         if(!IsSelectedType(requiredType))
+            continue;
+
+         count++;
+      }
+
+      return count;
+   }
+
    int CountBuy() const
    {
-      int count = 0;
-
-      for(int index = 0;
-          index < PositionsTotal();
-          index++)
-      {
-         if(!SelectPositionByIndex(index))
-            continue;
-
-         if(!IsSelectedPositionManaged())
-            continue;
-
-         ENUM_POSITION_TYPE type =
-            (ENUM_POSITION_TYPE)
-            PositionGetInteger(
-               POSITION_TYPE
-            );
-
-         if(type == POSITION_TYPE_BUY)
-            count++;
-      }
-
-      return count;
+      return CountByType(
+         POSITION_TYPE_BUY
+      );
    }
 
-   // Đếm position SELL.
    int CountSell() const
    {
-      int count = 0;
-
-      for(int index = 0;
-          index < PositionsTotal();
-          index++)
-      {
-         if(!SelectPositionByIndex(index))
-            continue;
-
-         if(!IsSelectedPositionManaged())
-            continue;
-
-         ENUM_POSITION_TYPE type =
-            (ENUM_POSITION_TYPE)
-            PositionGetInteger(
-               POSITION_TYPE
-            );
-
-         if(type == POSITION_TYPE_SELL)
-            count++;
-      }
-
-      return count;
+      return CountByType(
+         POSITION_TYPE_SELL
+      );
    }
 
-   // Tổng khối lượng của tất cả position.
+   bool HasPositions() const
+   {
+      return CountAll() > 0;
+   }
+
+   bool HasBuyPositions() const
+   {
+      return CountBuy() > 0;
+   }
+
+   bool HasSellPositions() const
+   {
+      return CountSell() > 0;
+   }
+
    double TotalVolume() const
    {
-      double totalVolume = 0.0;
+      double total = 0.0;
 
       for(int index = 0;
           index < PositionsTotal();
           index++)
       {
-         if(!SelectPositionByIndex(index))
+         if(!SelectByIndex(index))
             continue;
 
-         if(!IsSelectedPositionManaged())
+         if(!IsSelectedManagedPosition())
             continue;
 
-         totalVolume +=
+         total +=
             PositionGetDouble(
                POSITION_VOLUME
             );
       }
 
-      return totalVolume;
+      return total;
    }
 
-   // Tổng khối lượng BUY.
+   double TotalVolumeByType(
+      const ENUM_POSITION_TYPE requiredType
+   ) const
+   {
+      double total = 0.0;
+
+      for(int index = 0;
+          index < PositionsTotal();
+          index++)
+      {
+         if(!SelectByIndex(index))
+            continue;
+
+         if(!IsSelectedManagedPosition())
+            continue;
+
+         if(!IsSelectedType(requiredType))
+            continue;
+
+         total +=
+            PositionGetDouble(
+               POSITION_VOLUME
+            );
+      }
+
+      return total;
+   }
+
    double TotalBuyVolume() const
    {
-      double totalVolume = 0.0;
-
-      for(int index = 0;
-          index < PositionsTotal();
-          index++)
-      {
-         if(!SelectPositionByIndex(index))
-            continue;
-
-         if(!IsSelectedPositionManaged())
-            continue;
-
-         ENUM_POSITION_TYPE type =
-            (ENUM_POSITION_TYPE)
-            PositionGetInteger(
-               POSITION_TYPE
-            );
-
-         if(type != POSITION_TYPE_BUY)
-            continue;
-
-         totalVolume +=
-            PositionGetDouble(
-               POSITION_VOLUME
-            );
-      }
-
-      return totalVolume;
+      return TotalVolumeByType(
+         POSITION_TYPE_BUY
+      );
    }
 
-   // Tổng khối lượng SELL.
    double TotalSellVolume() const
    {
-      double totalVolume = 0.0;
-
-      for(int index = 0;
-          index < PositionsTotal();
-          index++)
-      {
-         if(!SelectPositionByIndex(index))
-            continue;
-
-         if(!IsSelectedPositionManaged())
-            continue;
-
-         ENUM_POSITION_TYPE type =
-            (ENUM_POSITION_TYPE)
-            PositionGetInteger(
-               POSITION_TYPE
-            );
-
-         if(type != POSITION_TYPE_SELL)
-            continue;
-
-         totalVolume +=
-            PositionGetDouble(
-               POSITION_VOLUME
-            );
-      }
-
-      return totalVolume;
+      return TotalVolumeByType(
+         POSITION_TYPE_SELL
+      );
    }
 
-   // Tổng lợi nhuận thả nổi, bao gồm profit và swap.
    double TotalProfit() const
    {
-      double totalProfit = 0.0;
+      double total = 0.0;
 
       for(int index = 0;
           index < PositionsTotal();
           index++)
       {
-         if(!SelectPositionByIndex(index))
+         if(!SelectByIndex(index))
             continue;
 
-         if(!IsSelectedPositionManaged())
+         if(!IsSelectedManagedPosition())
             continue;
 
-         totalProfit +=
+         total +=
             PositionGetDouble(
                POSITION_PROFIT
             );
 
-         totalProfit +=
+         total +=
             PositionGetDouble(
                POSITION_SWAP
             );
       }
 
-      return totalProfit;
+      return total;
    }
 
-   // Tổng lợi nhuận BUY.
+   double TotalProfitByType(
+      const ENUM_POSITION_TYPE requiredType
+   ) const
+   {
+      double total = 0.0;
+
+      for(int index = 0;
+          index < PositionsTotal();
+          index++)
+      {
+         if(!SelectByIndex(index))
+            continue;
+
+         if(!IsSelectedManagedPosition())
+            continue;
+
+         if(!IsSelectedType(requiredType))
+            continue;
+
+         total +=
+            PositionGetDouble(
+               POSITION_PROFIT
+            );
+
+         total +=
+            PositionGetDouble(
+               POSITION_SWAP
+            );
+      }
+
+      return total;
+   }
+
    double TotalBuyProfit() const
    {
-      double totalProfit = 0.0;
-
-      for(int index = 0;
-          index < PositionsTotal();
-          index++)
-      {
-         if(!SelectPositionByIndex(index))
-            continue;
-
-         if(!IsSelectedPositionManaged())
-            continue;
-
-         ENUM_POSITION_TYPE type =
-            (ENUM_POSITION_TYPE)
-            PositionGetInteger(
-               POSITION_TYPE
-            );
-
-         if(type != POSITION_TYPE_BUY)
-            continue;
-
-         totalProfit +=
-            PositionGetDouble(
-               POSITION_PROFIT
-            );
-
-         totalProfit +=
-            PositionGetDouble(
-               POSITION_SWAP
-            );
-      }
-
-      return totalProfit;
+      return TotalProfitByType(
+         POSITION_TYPE_BUY
+      );
    }
 
-   // Tổng lợi nhuận SELL.
    double TotalSellProfit() const
    {
-      double totalProfit = 0.0;
-
-      for(int index = 0;
-          index < PositionsTotal();
-          index++)
-      {
-         if(!SelectPositionByIndex(index))
-            continue;
-
-         if(!IsSelectedPositionManaged())
-            continue;
-
-         ENUM_POSITION_TYPE type =
-            (ENUM_POSITION_TYPE)
-            PositionGetInteger(
-               POSITION_TYPE
-            );
-
-         if(type != POSITION_TYPE_SELL)
-            continue;
-
-         totalProfit +=
-            PositionGetDouble(
-               POSITION_PROFIT
-            );
-
-         totalProfit +=
-            PositionGetDouble(
-               POSITION_SWAP
-            );
-      }
-
-      return totalProfit;
+      return TotalProfitByType(
+         POSITION_TYPE_SELL
+      );
    }
 
-   // Kiểm tra basket chỉ có một hướng BUY hoặc SELL.
-   // Trả về false nếu không có position hoặc basket bị trộn BUY/SELL.
-   bool GetBasketDirection(
-      ENUM_POSITION_TYPE &direction
-   ) const
-   {
-      bool hasDirection = false;
-
-      direction = POSITION_TYPE_BUY;
-
-      for(int index = 0;
-          index < PositionsTotal();
-          index++)
-      {
-         if(!SelectPositionByIndex(index))
-            continue;
-
-         if(!IsSelectedPositionManaged())
-            continue;
-
-         ENUM_POSITION_TYPE currentType =
-            (ENUM_POSITION_TYPE)
-            PositionGetInteger(
-               POSITION_TYPE
-            );
-
-         if(!hasDirection)
-         {
-            direction    = currentType;
-            hasDirection = true;
-            continue;
-         }
-
-         if(currentType != direction)
-            return false;
-      }
-
-      return hasDirection;
-   }
-
-   // Lấy position được mở gần nhất.
-   bool GetLatestPosition(
-      double &lastPrice,
-      double &lastVolume,
-      ENUM_POSITION_TYPE &lastType,
-      datetime &lastTime
-   ) const
-   {
-      lastPrice  = 0.0;
-      lastVolume = 0.0;
-      lastType   = POSITION_TYPE_BUY;
-      lastTime   = 0;
-
-      bool found = false;
-
-      for(int index = 0;
-          index < PositionsTotal();
-          index++)
-      {
-         if(!SelectPositionByIndex(index))
-            continue;
-
-         if(!IsSelectedPositionManaged())
-            continue;
-
-         datetime positionTime =
-            (datetime)
-            PositionGetInteger(
-               POSITION_TIME
-            );
-
-         if(found &&
-            positionTime < lastTime)
-         {
-            continue;
-         }
-
-         lastPrice =
-            PositionGetDouble(
-               POSITION_PRICE_OPEN
-            );
-
-         lastVolume =
-            PositionGetDouble(
-               POSITION_VOLUME
-            );
-
-         lastType =
-            (ENUM_POSITION_TYPE)
-            PositionGetInteger(
-               POSITION_TYPE
-            );
-
-         lastTime = positionTime;
-         found    = true;
-      }
-
-      return found;
-   }
-
-   // Lấy giá mở trung bình có trọng số của toàn basket.
    double AverageOpenPrice() const
    {
       double weightedPrice = 0.0;
@@ -464,10 +315,10 @@ public:
           index < PositionsTotal();
           index++)
       {
-         if(!SelectPositionByIndex(index))
+         if(!SelectByIndex(index))
             continue;
 
-         if(!IsSelectedPositionManaged())
+         if(!IsSelectedManagedPosition())
             continue;
 
          double volume =
@@ -492,7 +343,6 @@ public:
       return weightedPrice / totalVolume;
    }
 
-   // Lấy giá mở trung bình của một hướng cụ thể.
    double AverageOpenPriceByType(
       const ENUM_POSITION_TYPE requiredType
    ) const
@@ -504,19 +354,13 @@ public:
           index < PositionsTotal();
           index++)
       {
-         if(!SelectPositionByIndex(index))
+         if(!SelectByIndex(index))
             continue;
 
-         if(!IsSelectedPositionManaged())
+         if(!IsSelectedManagedPosition())
             continue;
 
-         ENUM_POSITION_TYPE currentType =
-            (ENUM_POSITION_TYPE)
-            PositionGetInteger(
-               POSITION_TYPE
-            );
-
-         if(currentType != requiredType)
+         if(!IsSelectedType(requiredType))
             continue;
 
          double volume =
@@ -541,62 +385,181 @@ public:
       return weightedPrice / totalVolume;
    }
 
-   // Kiểm tra EA có position đang mở không.
-   bool HasPositions() const
+   // Trả về false nếu basket trống hoặc đang trộn BUY và SELL.
+   bool GetBasketDirection(
+      ENUM_POSITION_TYPE &direction
+   ) const
    {
-      return CountAll() > 0;
-   }
+      bool found = false;
 
-   // Kiểm tra có BUY position hay không.
-   bool HasBuyPositions() const
-   {
-      return CountBuy() > 0;
-   }
-
-   // Kiểm tra có SELL position hay không.
-   bool HasSellPositions() const
-   {
-      return CountSell() > 0;
-   }
-
-   // Lấy ticket position mới nhất.
-   ulong LatestTicket() const
-   {
-      ulong    latestTicket = 0;
-      datetime latestTime   = 0;
+      direction = POSITION_TYPE_BUY;
 
       for(int index = 0;
           index < PositionsTotal();
           index++)
       {
-         if(!SelectPositionByIndex(index))
+         if(!SelectByIndex(index))
             continue;
 
-         if(!IsSelectedPositionManaged())
+         if(!IsSelectedManagedPosition())
             continue;
 
-         datetime positionTime =
+         ENUM_POSITION_TYPE currentType =
+            (ENUM_POSITION_TYPE)
+            PositionGetInteger(
+               POSITION_TYPE
+            );
+
+         if(!found)
+         {
+            direction = currentType;
+            found     = true;
+            continue;
+         }
+
+         if(currentType != direction)
+            return false;
+      }
+
+      return found;
+   }
+
+   // Lấy position mới nhất theo API cũ.
+   bool GetLatestPosition(
+      double &lastPrice,
+      double &lastVolume,
+      ENUM_POSITION_TYPE &lastType,
+      datetime &lastTime
+   ) const
+   {
+      SLatestPosition latest;
+
+      if(!GetLatestPosition(latest))
+         return false;
+
+      lastPrice  = latest.openPrice;
+      lastVolume = latest.volume;
+      lastType   = latest.type;
+      lastTime   = latest.openTime;
+
+      return true;
+   }
+
+   // Lấy position mới nhất theo struct mới.
+   bool GetLatestPosition(
+      SLatestPosition &latest
+   ) const
+   {
+      latest.Reset();
+
+      for(int index = 0;
+          index < PositionsTotal();
+          index++)
+      {
+         if(!SelectByIndex(index))
+            continue;
+
+         if(!IsSelectedManagedPosition())
+            continue;
+
+         datetime currentTime =
             (datetime)
             PositionGetInteger(
                POSITION_TIME
             );
 
-         if(latestTicket != 0 &&
-            positionTime < latestTime)
+         if(latest.valid &&
+            currentTime < latest.openTime)
          {
             continue;
          }
 
-         latestTicket =
+         latest.ticket =
             (ulong)
             PositionGetInteger(
                POSITION_TICKET
             );
 
-         latestTime = positionTime;
+         latest.openPrice =
+            PositionGetDouble(
+               POSITION_PRICE_OPEN
+            );
+
+         latest.volume =
+            PositionGetDouble(
+               POSITION_VOLUME
+            );
+
+         latest.type =
+            (ENUM_POSITION_TYPE)
+            PositionGetInteger(
+               POSITION_TYPE
+            );
+
+         latest.openTime = currentTime;
+         latest.valid    = true;
       }
 
-      return latestTicket;
+      return latest.valid;
+   }
+
+   ulong LatestTicket() const
+   {
+      SLatestPosition latest;
+
+      if(!GetLatestPosition(latest))
+         return 0;
+
+      return latest.ticket;
+   }
+
+   // Tạo snapshot basket chuẩn hóa cho Dashboard và Risk.
+   bool GetBasketSnapshot(
+      SBasketSnapshot &snapshot
+   ) const
+   {
+      snapshot.Reset();
+
+      snapshot.positionCount =
+         CountAll();
+
+      if(snapshot.positionCount <= 0)
+         return false;
+
+      snapshot.buyCount =
+         CountBuy();
+
+      snapshot.sellCount =
+         CountSell();
+
+      snapshot.totalVolume =
+         TotalVolume();
+
+      snapshot.totalProfit =
+         TotalProfit();
+
+      snapshot.averagePrice =
+         AverageOpenPrice();
+
+      snapshot.mixedDirection =
+         snapshot.buyCount > 0 &&
+         snapshot.sellCount > 0;
+
+      if(snapshot.buyCount > 0 &&
+         snapshot.sellCount == 0)
+      {
+         snapshot.direction =
+            POSITION_TYPE_BUY;
+      }
+      else if(snapshot.sellCount > 0 &&
+              snapshot.buyCount == 0)
+      {
+         snapshot.direction =
+            POSITION_TYPE_SELL;
+      }
+
+      snapshot.valid = true;
+      return true;
    }
 };
 

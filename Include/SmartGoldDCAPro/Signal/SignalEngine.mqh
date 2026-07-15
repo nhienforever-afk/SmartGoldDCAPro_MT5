@@ -5,78 +5,251 @@
 #include <SmartGoldDCAPro/Core/Inputs.mqh>
 #include <SmartGoldDCAPro/Signal/SignalSnapshot.mqh>
 
+//+------------------------------------------------------------------+
+//| SmartGoldDCAPro Framework v2.0 - Signal Engine                   |
+//+------------------------------------------------------------------+
 class CSignalEngine
 {
 private:
    string          m_symbol;
    ENUM_TIMEFRAMES m_timeframe;
-   int             m_fastHandle;
-   int             m_slowHandle;
-   int             m_rsiHandle;
-   int             m_adxHandle;
-   int             m_atrHandle;
 
-   mutable SSignalSnapshot m_lastSnapshot;
+   int m_fastEMAHandle;
+   int m_slowEMAHandle;
+   int m_rsiHandle;
+   int m_adxHandle;
+   int m_atrHandle;
 
-   bool ReadValue(const int handle,
-                  const int bufferIndex,
-                  const int shift,
-                  double &value) const
+   SSignalSnapshot m_lastSnapshot;
+
+   bool ReadBufferValue(
+      const int handle,
+      const int bufferIndex,
+      double &value
+   ) const
    {
+      value = 0.0;
+
       if(handle == INVALID_HANDLE)
          return false;
 
-      double data[1];
+      double buffer[1];
 
       if(CopyBuffer(
             handle,
             bufferIndex,
-            shift,
             1,
-            data) != 1)
+            1,
+            buffer
+         ) != 1)
+      {
          return false;
+      }
 
-      value = data[0];
+      value = buffer[0];
       return true;
    }
 
-   void ResetSnapshot() const
+   double EMAAlignmentScore(
+      const double fastEMA,
+      const double slowEMA
+   ) const
    {
-      m_lastSnapshot.timestamp = TimeCurrent();
-      m_lastSnapshot.buyScore  = 0.0;
-      m_lastSnapshot.sellScore = 0.0;
-      m_lastSnapshot.emaFast   = 0.0;
-      m_lastSnapshot.emaSlow   = 0.0;
-      m_lastSnapshot.rsi       = 0.0;
-      m_lastSnapshot.adx       = 0.0;
-      m_lastSnapshot.plusDI    = 0.0;
-      m_lastSnapshot.minusDI   = 0.0;
-      m_lastSnapshot.atrPoints = 0.0;
-      m_lastSnapshot.valid     = false;
+      double point =
+         SymbolInfoDouble(
+            m_symbol,
+            SYMBOL_POINT
+         );
+
+      if(point <= 0.0)
+         return 0.0;
+
+      double distancePoints =
+         MathAbs(
+            fastEMA -
+            slowEMA
+         ) /
+         point;
+
+      return SGDPNormalizeScore(
+         50.0 +
+         MathMin(
+            50.0,
+            distancePoints /
+            10.0
+         )
+      );
+   }
+
+   double RSIBuyScore(
+      const double rsiValue
+   ) const
+   {
+      if(rsiValue <= 50.0)
+         return 0.0;
+
+      return SGDPNormalizeScore(
+         (
+            rsiValue -
+            50.0
+         ) *
+         2.0
+      );
+   }
+
+   double RSISellScore(
+      const double rsiValue
+   ) const
+   {
+      if(rsiValue >= 50.0)
+         return 0.0;
+
+      return SGDPNormalizeScore(
+         (
+            50.0 -
+            rsiValue
+         ) *
+         2.0
+      );
+   }
+
+   double ADXScore(
+      const double adxValue
+   ) const
+   {
+      if(adxValue <= 0.0)
+         return 0.0;
+
+      return SGDPNormalizeScore(
+         adxValue *
+         2.0
+      );
+   }
+
+   double ATRScore(
+      const double atrPoints
+   ) const
+   {
+      if(atrPoints <= 0.0)
+         return 0.0;
+
+      if(atrPoints <
+         InpMinimumATRPoints)
+      {
+         return SGDPNormalizeScore(
+            (
+               atrPoints /
+               MathMax(
+                  1.0,
+                  InpMinimumATRPoints
+               )
+            ) *
+            50.0
+         );
+      }
+
+      if(atrPoints >=
+         InpHighVolatilityATRPoints)
+      {
+         return 20.0;
+      }
+
+      return 80.0;
+   }
+
+   double WeightedScore(
+      const double emaScore,
+      const double rsiScore,
+      const double adxScore
+   ) const
+   {
+      double totalWeight = 0.0;
+      double totalScore  = 0.0;
+
+      if(InpUseEMAFilter)
+      {
+         totalWeight +=
+            MathMax(
+               0.0,
+               InpEMAWeight
+            );
+
+         totalScore +=
+            emaScore *
+            MathMax(
+               0.0,
+               InpEMAWeight
+            );
+      }
+
+      if(InpUseRSIFilter)
+      {
+         totalWeight +=
+            MathMax(
+               0.0,
+               InpRSIWeight
+            );
+
+         totalScore +=
+            rsiScore *
+            MathMax(
+               0.0,
+               InpRSIWeight
+            );
+      }
+
+      if(InpUseADXFilter)
+      {
+         totalWeight +=
+            MathMax(
+               0.0,
+               InpADXWeight
+            );
+
+         totalScore +=
+            adxScore *
+            MathMax(
+               0.0,
+               InpADXWeight
+            );
+      }
+
+      if(totalWeight <= 0.0)
+         return 0.0;
+
+      return SGDPNormalizeScore(
+         totalScore /
+         totalWeight
+      );
    }
 
 public:
    CSignalEngine()
    {
-      m_symbol     = _Symbol;
-      m_timeframe  = PERIOD_M15;
-      m_fastHandle = INVALID_HANDLE;
-      m_slowHandle = INVALID_HANDLE;
-      m_rsiHandle  = INVALID_HANDLE;
-      m_adxHandle  = INVALID_HANDLE;
-      m_atrHandle  = INVALID_HANDLE;
-      ResetSnapshot();
+      m_symbol    = _Symbol;
+      m_timeframe = PERIOD_M15;
+
+      m_fastEMAHandle = INVALID_HANDLE;
+      m_slowEMAHandle = INVALID_HANDLE;
+      m_rsiHandle     = INVALID_HANDLE;
+      m_adxHandle     = INVALID_HANDLE;
+      m_atrHandle     = INVALID_HANDLE;
+
+      m_lastSnapshot.Reset();
    }
 
-   bool Initialize(const string symbol,
-                   const ENUM_TIMEFRAMES timeframe)
+   bool Initialize(
+      const string symbol,
+      const ENUM_TIMEFRAMES timeframe
+   )
    {
+      Release();
+
       m_symbol    = symbol;
       m_timeframe = timeframe;
 
-      if(InpUseEMAFilter)
-      {
-         m_fastHandle = iMA(
+      m_fastEMAHandle =
+         iMA(
             m_symbol,
             m_timeframe,
             InpFastEMAPeriod,
@@ -85,7 +258,8 @@ public:
             PRICE_CLOSE
          );
 
-         m_slowHandle = iMA(
+      m_slowEMAHandle =
+         iMA(
             m_symbol,
             m_timeframe,
             InpSlowEMAPeriod,
@@ -93,63 +267,76 @@ public:
             MODE_EMA,
             PRICE_CLOSE
          );
-      }
 
-      if(InpUseRSIFilter)
-      {
-         m_rsiHandle = iRSI(
+      m_rsiHandle =
+         iRSI(
             m_symbol,
             m_timeframe,
             InpRSIPeriod,
             PRICE_CLOSE
          );
-      }
 
-      if(InpUseADXFilter)
-      {
-         m_adxHandle = iADX(
+      m_adxHandle =
+         iADX(
             m_symbol,
             m_timeframe,
             InpADXPeriod
          );
-      }
 
-      if(InpUseATRFilter)
-      {
-         m_atrHandle = iATR(
+      m_atrHandle =
+         iATR(
             m_symbol,
             m_timeframe,
             InpATRPeriod
          );
-      }
+
+      bool emaReady =
+         m_fastEMAHandle != INVALID_HANDLE &&
+         m_slowEMAHandle != INVALID_HANDLE;
+
+      bool rsiReady =
+         m_rsiHandle != INVALID_HANDLE;
+
+      bool adxReady =
+         m_adxHandle != INVALID_HANDLE;
+
+      bool atrReady =
+         m_atrHandle != INVALID_HANDLE;
 
       if(InpUseEMAFilter &&
-         (m_fastHandle == INVALID_HANDLE ||
-          m_slowHandle == INVALID_HANDLE))
+         !emaReady)
+      {
          return false;
+      }
 
       if(InpUseRSIFilter &&
-         m_rsiHandle == INVALID_HANDLE)
+         !rsiReady)
+      {
          return false;
+      }
 
       if(InpUseADXFilter &&
-         m_adxHandle == INVALID_HANDLE)
+         !adxReady)
+      {
          return false;
+      }
 
       if(InpUseATRFilter &&
-         m_atrHandle == INVALID_HANDLE)
+         !atrReady)
+      {
          return false;
+      }
 
       return true;
    }
 
    void Release()
    {
-      if(m_fastHandle != INVALID_HANDLE)
-         IndicatorRelease(m_fastHandle);
+      if(m_fastEMAHandle != INVALID_HANDLE)
+         IndicatorRelease(m_fastEMAHandle);
 
-      if(m_slowHandle != INVALID_HANDLE)
-         IndicatorRelease(m_slowHandle);
+      if(m_slowEMAHandle != INVALID_HANDLE)
+         IndicatorRelease(m_slowEMAHandle);
 
       if(m_rsiHandle != INVALID_HANDLE)
          IndicatorRelease(m_rsiHandle);
@@ -160,191 +347,285 @@ public:
       if(m_atrHandle != INVALID_HANDLE)
          IndicatorRelease(m_atrHandle);
 
-      m_fastHandle = INVALID_HANDLE;
-      m_slowHandle = INVALID_HANDLE;
-      m_rsiHandle  = INVALID_HANDLE;
-      m_adxHandle  = INVALID_HANDLE;
-      m_atrHandle  = INVALID_HANDLE;
+      m_fastEMAHandle = INVALID_HANDLE;
+      m_slowEMAHandle = INVALID_HANDLE;
+      m_rsiHandle     = INVALID_HANDLE;
+      m_adxHandle     = INVALID_HANDLE;
+      m_atrHandle     = INVALID_HANDLE;
+
+      m_lastSnapshot.Reset();
    }
 
-   ENUM_TRADE_SIGNAL GetSignal() const
+   bool Evaluate()
    {
-      ResetSnapshot();
+      m_lastSnapshot.Reset();
 
-      double totalWeight = 0.0;
-      double buyWeight   = 0.0;
-      double sellWeight  = 0.0;
-
-      if(InpUseATRFilter)
-      {
-         double atr = 0.0;
-
-         if(!ReadValue(
-               m_atrHandle,
-               0,
-               1,
-               atr))
-            return SIGNAL_NONE;
-
-         double point =
-            SymbolInfoDouble(
-               m_symbol,
-               SYMBOL_POINT
-            );
-
-         if(point <= 0.0)
-            return SIGNAL_NONE;
-
-         m_lastSnapshot.atrPoints =
-            atr / point;
-
-         if(InpMinimumATRPoints > 0.0 &&
-            m_lastSnapshot.atrPoints <
-            InpMinimumATRPoints)
-            return SIGNAL_NONE;
-      }
+      double fastEMA  = 0.0;
+      double slowEMA  = 0.0;
+      double rsiValue = 50.0;
+      double adxValue = 0.0;
+      double atrValue = 0.0;
 
       if(InpUseEMAFilter)
       {
-         if(!ReadValue(
-               m_fastHandle,
+         if(!ReadBufferValue(
+               m_fastEMAHandle,
                0,
-               1,
-               m_lastSnapshot.emaFast) ||
-            !ReadValue(
-               m_slowHandle,
+               fastEMA
+            ))
+         {
+            m_lastSnapshot.reason =
+               "Cannot read Fast EMA.";
+
+            return false;
+         }
+
+         if(!ReadBufferValue(
+               m_slowEMAHandle,
                0,
-               1,
-               m_lastSnapshot.emaSlow))
-            return SIGNAL_NONE;
+               slowEMA
+            ))
+         {
+            m_lastSnapshot.reason =
+               "Cannot read Slow EMA.";
 
-         totalWeight += InpEMAWeight;
-
-         if(m_lastSnapshot.emaFast >
-            m_lastSnapshot.emaSlow)
-            buyWeight += InpEMAWeight;
-         else if(m_lastSnapshot.emaFast <
-                 m_lastSnapshot.emaSlow)
-            sellWeight += InpEMAWeight;
+            return false;
+         }
       }
 
       if(InpUseRSIFilter)
       {
-         if(!ReadValue(
+         if(!ReadBufferValue(
                m_rsiHandle,
                0,
-               1,
-               m_lastSnapshot.rsi))
-            return SIGNAL_NONE;
+               rsiValue
+            ))
+         {
+            m_lastSnapshot.reason =
+               "Cannot read RSI.";
 
-         totalWeight += InpRSIWeight;
-
-         if(m_lastSnapshot.rsi >=
-            InpRSIBuyMinimum)
-            buyWeight += InpRSIWeight;
-         else if(m_lastSnapshot.rsi <=
-                 InpRSISellMaximum)
-            sellWeight += InpRSIWeight;
+            return false;
+         }
       }
 
       if(InpUseADXFilter)
       {
-         if(!ReadValue(
+         if(!ReadBufferValue(
                m_adxHandle,
                0,
-               1,
-               m_lastSnapshot.adx) ||
-            !ReadValue(
-               m_adxHandle,
-               1,
-               1,
-               m_lastSnapshot.plusDI) ||
-            !ReadValue(
-               m_adxHandle,
-               2,
-               1,
-               m_lastSnapshot.minusDI))
-            return SIGNAL_NONE;
-
-         totalWeight += InpADXWeight;
-
-         if(m_lastSnapshot.adx >=
-            InpMinimumADX)
+               adxValue
+            ))
          {
-            if(m_lastSnapshot.plusDI >
-               m_lastSnapshot.minusDI)
-               buyWeight += InpADXWeight;
-            else if(m_lastSnapshot.minusDI >
-                    m_lastSnapshot.plusDI)
-               sellWeight += InpADXWeight;
+            m_lastSnapshot.reason =
+               "Cannot read ADX.";
+
+            return false;
          }
       }
 
-      if(totalWeight <= 0.0)
+      if(InpUseATRFilter)
       {
-         if(InpDirectionMode ==
-            DIRECTION_BUY_ONLY)
+         if(!ReadBufferValue(
+               m_atrHandle,
+               0,
+               atrValue
+            ))
          {
-            m_lastSnapshot.buyScore = 100.0;
-            m_lastSnapshot.valid = true;
-            return SIGNAL_BUY;
-         }
+            m_lastSnapshot.reason =
+               "Cannot read ATR.";
 
-         if(InpDirectionMode ==
-            DIRECTION_SELL_ONLY)
-         {
-            m_lastSnapshot.sellScore = 100.0;
-            m_lastSnapshot.valid = true;
-            return SIGNAL_SELL;
+            return false;
          }
+      }
 
-         return SIGNAL_NONE;
+      double point =
+         SymbolInfoDouble(
+            m_symbol,
+            SYMBOL_POINT
+         );
+
+      if(point <= 0.0)
+      {
+         m_lastSnapshot.reason =
+            "Invalid symbol point.";
+
+         return false;
+      }
+
+      double atrPoints =
+         atrValue /
+         point;
+
+      double emaScore =
+         EMAAlignmentScore(
+            fastEMA,
+            slowEMA
+         );
+
+      m_lastSnapshot.timestamp =
+         TimeCurrent();
+
+      m_lastSnapshot.fastEMA =
+         fastEMA;
+
+      m_lastSnapshot.slowEMA =
+         slowEMA;
+
+      m_lastSnapshot.rsiValue =
+         rsiValue;
+
+      m_lastSnapshot.adxValue =
+         adxValue;
+
+      m_lastSnapshot.atrPoints =
+         atrPoints;
+
+      if(InpUseEMAFilter)
+      {
+         if(fastEMA > slowEMA)
+            m_lastSnapshot.emaBuyScore =
+               emaScore;
+         else if(fastEMA < slowEMA)
+            m_lastSnapshot.emaSellScore =
+               emaScore;
+      }
+
+      if(InpUseRSIFilter)
+      {
+         m_lastSnapshot.rsiBuyScore =
+            RSIBuyScore(
+               rsiValue
+            );
+
+         m_lastSnapshot.rsiSellScore =
+            RSISellScore(
+               rsiValue
+            );
+      }
+
+      if(InpUseADXFilter)
+      {
+         m_lastSnapshot.adxScore =
+            ADXScore(
+               adxValue
+            );
+      }
+      else
+      {
+         m_lastSnapshot.adxScore =
+            100.0;
+      }
+
+      if(InpUseATRFilter)
+      {
+         m_lastSnapshot.atrScore =
+            ATRScore(
+               atrPoints
+            );
+      }
+      else
+      {
+         m_lastSnapshot.atrScore =
+            100.0;
+      }
+
+      double buyScore =
+         WeightedScore(
+            m_lastSnapshot.emaBuyScore,
+            m_lastSnapshot.rsiBuyScore,
+            m_lastSnapshot.adxScore
+         );
+
+      double sellScore =
+         WeightedScore(
+            m_lastSnapshot.emaSellScore,
+            m_lastSnapshot.rsiSellScore,
+            m_lastSnapshot.adxScore
+         );
+
+      if(InpUseATRFilter)
+      {
+         buyScore =
+            (
+               buyScore * 0.80 +
+               m_lastSnapshot.atrScore *
+               0.20
+            );
+
+         sellScore =
+            (
+               sellScore * 0.80 +
+               m_lastSnapshot.atrScore *
+               0.20
+            );
       }
 
       m_lastSnapshot.buyScore =
-         buyWeight / totalWeight * 100.0;
+         SGDPNormalizeScore(
+            buyScore
+         );
 
       m_lastSnapshot.sellScore =
-         sellWeight / totalWeight * 100.0;
+         SGDPNormalizeScore(
+            sellScore
+         );
 
-      m_lastSnapshot.valid = true;
-
-      if(!InpUseWeightedSignal)
-      {
-         if(buyWeight >= totalWeight &&
-            sellWeight <= 0.0)
-            return SIGNAL_BUY;
-
-         if(sellWeight >= totalWeight &&
-            buyWeight <= 0.0)
-            return SIGNAL_SELL;
-
-         return SIGNAL_NONE;
-      }
-
-      double advantage =
+      m_lastSnapshot.scoreAdvantage =
          MathAbs(
             m_lastSnapshot.buyScore -
             m_lastSnapshot.sellScore
          );
 
-      if(advantage <
+      m_lastSnapshot.signal =
+         SIGNAL_NONE;
+
+      m_lastSnapshot.reason =
+         "Signal score is below threshold.";
+
+      if(m_lastSnapshot.scoreAdvantage <
          InpMinimumScoreAdvantage)
+      {
+         m_lastSnapshot.reason =
+            "BUY and SELL scores are too close.";
+      }
+      else if(m_lastSnapshot.buyScore >=
+                 InpMinimumSignalScore &&
+              m_lastSnapshot.buyScore >
+                 m_lastSnapshot.sellScore)
+      {
+         m_lastSnapshot.signal =
+            SIGNAL_BUY;
+
+         m_lastSnapshot.reason =
+            "BUY signal approved.";
+      }
+      else if(m_lastSnapshot.sellScore >=
+                 InpMinimumSignalScore &&
+              m_lastSnapshot.sellScore >
+                 m_lastSnapshot.buyScore)
+      {
+         m_lastSnapshot.signal =
+            SIGNAL_SELL;
+
+         m_lastSnapshot.reason =
+            "SELL signal approved.";
+      }
+
+      m_lastSnapshot.valid = true;
+      return true;
+   }
+
+   ENUM_TRADE_SIGNAL GetSignal()
+   {
+      if(!Evaluate())
          return SIGNAL_NONE;
 
-      if(m_lastSnapshot.buyScore >=
-            InpMinimumSignalScore &&
-         m_lastSnapshot.buyScore >
-            m_lastSnapshot.sellScore)
-         return SIGNAL_BUY;
+      return m_lastSnapshot.signal;
+   }
 
-      if(m_lastSnapshot.sellScore >=
-            InpMinimumSignalScore &&
-         m_lastSnapshot.sellScore >
-            m_lastSnapshot.buyScore)
-         return SIGNAL_SELL;
-
-      return SIGNAL_NONE;
+   SSignalSnapshot LastSnapshot() const
+   {
+      return m_lastSnapshot;
    }
 
    double LastBuyScore() const
@@ -359,17 +640,22 @@ public:
 
    double LastADX() const
    {
-      return m_lastSnapshot.adx;
+      return m_lastSnapshot.adxValue;
    }
 
    double LastRSI() const
    {
-      return m_lastSnapshot.rsi;
+      return m_lastSnapshot.rsiValue;
    }
 
-   bool LastSnapshotValid() const
+   double LastATRPoints() const
    {
-      return m_lastSnapshot.valid;
+      return m_lastSnapshot.atrPoints;
+   }
+
+   string LastReason() const
+   {
+      return m_lastSnapshot.reason;
    }
 };
 

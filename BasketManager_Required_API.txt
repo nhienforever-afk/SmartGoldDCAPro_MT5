@@ -1,0 +1,3 @@
+D:\Projects\SmartGoldDCAPro_MT5_vNext\Experts\SmartGoldDCAPro.mq5:242: g_basket.Initialize(
+D:\Projects\SmartGoldDCAPro_MT5_vNext\Include\SmartGoldDCAPro\Core\Types.mqh:145: // Thông tin v? th? m?i nh?t trong basket.
+D:\Projects\SmartGoldDCAPro_MT5_vNext\Include\SmartGoldDCAPro\DCA\DCAEngine.mqh:158: reason = "No active basket.";
