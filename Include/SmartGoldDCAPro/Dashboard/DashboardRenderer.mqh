@@ -3,34 +3,38 @@
 
 #include <SmartGoldDCAPro/Dashboard/DashboardData.mqh>
 
+//+------------------------------------------------------------------+
+//| SmartGoldDCAPro Framework v2.0 - Dashboard Renderer              |
+//| Displays Dashboard data using the native MT5 chart Comment       |
+//+------------------------------------------------------------------+
 class CDashboardRenderer
 {
 private:
-
    long m_chartId;
-
-   string m_name;
-
    bool m_initialized;
 
 public:
-
    CDashboardRenderer()
    {
-      m_chartId = 0;
+      m_chartId =
+         0;
 
-      m_name = "SGDP_Dashboard";
-
-      m_initialized = false;
+      m_initialized =
+         false;
    }
 
+   //+----------------------------------------------------------------+
+   //| Initialize Renderer                                            |
+   //+----------------------------------------------------------------+
    bool Initialize(
       const long chartId = 0
    )
    {
-      m_chartId = chartId;
+      m_chartId =
+         chartId;
 
-      m_initialized = true;
+      m_initialized =
+         true;
 
       return true;
    }
@@ -40,24 +44,32 @@ public:
       return m_initialized;
    }
 
-   void Release()
-   {
-      ObjectDelete(
-         m_chartId,
-         m_name
-      );
-
-      m_initialized = false;
-   }
-
+   //+----------------------------------------------------------------+
+   //| Remove Dashboard text                                          |
+   //+----------------------------------------------------------------+
    void Hide()
    {
-      ObjectDelete(
-         m_chartId,
-         m_name
+      Comment("");
+
+      ChartRedraw(
+         m_chartId
       );
    }
 
+   //+----------------------------------------------------------------+
+   //| Release Renderer                                               |
+   //+----------------------------------------------------------------+
+   void Release()
+   {
+      Hide();
+
+      m_initialized =
+         false;
+   }
+
+   //+----------------------------------------------------------------+
+   //| Update Dashboard                                               |
+   //+----------------------------------------------------------------+
    bool Update(
       const SDashboardData &data
    )
@@ -68,45 +80,94 @@ public:
       if(!data.IsValid())
          return false;
 
-      string text;
-
-      text =
-         "SmartGoldDCAPro\n\n";
+      string text =
+         "SMARTGOLDDCAPRO v2.0\n"
+         "--------------------------------\n";
 
       text +=
-         "Symbol : " +
+         "Symbol       : " +
          data.symbol +
          "\n";
 
       text +=
-         "Trend : " +
+         "Trend        : " +
          data.marketTrend +
          "\n";
 
       text +=
-         "Signal : " +
+         "Momentum     : " +
+         data.marketMomentum +
+         "\n";
+
+      text +=
+         "Volatility   : " +
+         data.marketVolatility +
+         "\n";
+
+      text +=
+         "Spread       : " +
+         DoubleToString(
+            data.spreadPoints,
+            1
+         ) +
+         "\n";
+
+      text +=
+         "--------------------------------\n";
+
+      text +=
+         "Signal       : " +
          data.signal +
          "\n";
 
       text +=
-         "Decision : " +
+         "BUY Score    : " +
+         DoubleToString(
+            data.buySignalScore,
+            1
+         ) +
+         "\n";
+
+      text +=
+         "SELL Score   : " +
+         DoubleToString(
+            data.sellSignalScore,
+            1
+         ) +
+         "\n";
+
+      text +=
+         "Decision     : " +
          data.decision +
          "\n";
 
       text +=
-         "Basket : " +
+         "Confidence   : " +
+         data.confidence +
+         "\n";
+
+      text +=
+         "Quality      : " +
+         data.quality +
+         "\n";
+
+      text +=
+         "--------------------------------\n";
+
+      text +=
+         "Basket       : " +
          data.basketDirection +
          "\n";
 
       text +=
-         "Orders : " +
+         "Orders       : " +
          IntegerToString(
             data.basketOrders
          ) +
          "\n";
 
       text +=
-         "Profit : " +
+         "Profit       : " +
          DoubleToString(
             data.basketProfit,
             2
@@ -114,21 +175,32 @@ public:
          "\n";
 
       text +=
-         "DCA : " +
+         "DCA Level    : " +
          IntegerToString(
             data.dcaLevel
          ) +
          "\n";
 
       text +=
-         "Risk : " +
+         "Grid         : " +
+         DoubleToString(
+            data.gridPoints,
+            1
+         ) +
+         "\n";
+
+      text +=
+         "Risk Score   : " +
          IntegerToString(
             data.riskScore
          ) +
          "\n";
 
       text +=
-         "Balance : " +
+         "--------------------------------\n";
+
+      text +=
+         "Balance      : " +
          DoubleToString(
             data.balance,
             2
@@ -136,7 +208,7 @@ public:
          "\n";
 
       text +=
-         "Equity : " +
+         "Equity       : " +
          DoubleToString(
             data.equity,
             2
@@ -144,70 +216,33 @@ public:
          "\n";
 
       text +=
-         "Margin : " +
+         "Free Margin  : " +
+         DoubleToString(
+            data.freeMargin,
+            2
+         ) +
+         "\n";
+
+      text +=
+         "Margin Level : " +
          DoubleToString(
             data.marginLevel,
             1
          ) +
+         "%\n";
+
+      text +=
+         "Drawdown     : " +
+         DoubleToString(
+            data.drawdownPercent,
+            2
+         ) +
          "%";
 
-      if(
-         ObjectFind(
-            m_chartId,
-            m_name
-         ) < 0
-      )
-      {
-         ObjectCreate(
-            m_chartId,
-            m_name,
-            OBJ_LABEL,
-            0,
-            0,
-            0
-         );
+      Comment(text);
 
-         ObjectSetInteger(
-            m_chartId,
-            m_name,
-            OBJPROP_CORNER,
-            CORNER_LEFT_UPPER
-         );
-
-         ObjectSetInteger(
-            m_chartId,
-            m_name,
-            OBJPROP_XDISTANCE,
-            15
-         );
-
-         ObjectSetInteger(
-            m_chartId,
-            m_name,
-            OBJPROP_YDISTANCE,
-            20
-         );
-
-         ObjectSetInteger(
-            m_chartId,
-            m_name,
-            OBJPROP_FONTSIZE,
-            10
-         );
-
-         ObjectSetString(
-            m_chartId,
-            m_name,
-            OBJPROP_FONT,
-            "Consolas"
-         );
-      }
-
-      ObjectSetString(
-         m_chartId,
-         m_name,
-         OBJPROP_TEXT,
-         text
+      ChartRedraw(
+         m_chartId
       );
 
       return true;
